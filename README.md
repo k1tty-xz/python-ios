@@ -4,93 +4,67 @@
 [![License](https://img.shields.io/github/license/k1tty-xz/python3.12-ios-arm64)](LICENSE)
 [![iOS](https://img.shields.io/badge/iOS-14.5%2B-black?logo=apple)](https://apple.com)
 
-A fully-featured, stable port of **Python 3.12** for jailbroken iOS devices (arm64). This project provides a Debian package (`.deb`) that installs a complete Python environment, optimized for mobile usage and development.
+CPython 3.12 built for **iOS arm64** and packaged as a Debian package for jailbroken devices.
 
-## Features
+## Build
 
--   **Python 3.12**: Full standard library with SSL/TLS support (OpenSSL 1.1.1).
--   **Package Management**: `pip` available via `python3 -m ensurepip`.
--   **Automatic Setup**: Configures PATH automatically upon installation.
+The build requires macOS with Xcode and Homebrew.
 
-## Installation
+Install the required tools:
 
-Add the repository to your package manager (Sileo, Zebra, Cydia):
-
-```
-https://k1tty-xz.github.io/repo/
+```sh
+bash scripts/install-build-tools.sh
 ```
 
-Then search for **Python 3.12 (k1tty)** and install.
+Set the build variables:
 
-### Post-Installation
-
-After installation, you may need to reload your shell profile or start a new terminal session for the PATH to update:
-
-```bash
-source /etc/profile
+```sh
+export PY_VER=3.12.5
+export LIBFFI_VER=3.4.4
+export MIN_IOS=14.5
+export PYTHON_FOR_BUILD="$(command -v python3.12)"
 ```
 
-To install pip:
+Build everything:
 
-```bash
-python3 -m ensurepip
-pip3 install --upgrade pip
+```sh
+make all
 ```
 
-## Build Instructions
+The package is written to `work/` as:
 
-To build this package yourself, you can use the provided GitHub Actions workflow or build locally on macOS.
+```text
+python3.12_<version>-1_iphoneos-arm.deb
+```
 
-### Prerequisites
+Individual stages are also available:
 
--   macOS (for Xcode toolchain)
--   Xcode Command Line Tools
--   Homebrew (for dependencies like `ldid`, `automake`)
+```sh
+make deps
+make python
+make package
+```
 
-### Local Build
+## Build
 
-1.  **Clone the repository**:
-    ```bash
-    git clone https://github.com/k1tty-xz/python3.12-ios-arm64.git
-    cd python3.12-ios-arm64
-    ```
+The project:
 
-2.  **Install build tools**:
-    ```bash
-    bash scripts/install-build-tools.sh
-    ```
+1. Builds OpenSSL and libffi for iOS arm64.
+2. Cross-compiles CPython using the iOS SDK.
+3. Applies the required iOS cross-compilation configuration.
+4. Strips and signs the resulting Mach-O binaries.
+5. Packages the staged files as an `iphoneos-arm` Debian package.
 
-3.  **Set up environment variables**:
-    ```bash
-    export PY_VER=3.12.5
-    export LIBFFI_VER=3.4.4
-    export MIN_IOS=14.5
-    export PYTHON_FOR_BUILD=$(which python3.12 || which python3)
-    ```
+The default deployment target is **iOS 14.5**.
 
-4.  **Build and Package**:
-    ```bash
-    # This will download sources, compile, and create the .deb
-    make all
-    ```
+## Package
 
-    The resulting `.deb` file will be in the `work/` directory.
+The resulting package installs Python under `/usr/local` and adds `/usr/local/bin` to the user's `PATH`. The package provides `python3` and `python3.12`, with SSL support through OpenSSL and `ctypes` support through libffi.
 
-## Project Structure
+## CI
 
--   `scripts/`: Build scripts and patches.
-    -   `build-python.sh`: Main build logic for CPython.
-    -   `entitlements.plist`: Entitlements for code signing.
-    -   `python-configure.patch`: Patch for cross-compilation support.
--   `debian/`: Debian packaging metadata (`control`, `prerm`, etc.).
--   `.github/`: CI/CD configuration.
-
-## Credits
-
--   **k1tty-xz**: Main maintainer.
--   **Python Software Foundation**: For the Python programming language.
--   **OpenSSL**: For the crypto library.
+A GitHub Actions workflow is provided for building the package on macOS. It uses Python 3.12 for the host build and uploads the generated `.deb` as an artifact.
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+The build scripts and packaging are licensed under the MIT License. Python, OpenSSL, libffi, and the bundled GNU config files retain their respective licenses. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
