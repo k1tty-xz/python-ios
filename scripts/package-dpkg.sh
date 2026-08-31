@@ -31,9 +31,9 @@ INSTALLED_SIZE="$(du -sk "$PKGROOT/usr" | awk '{print $1}')"
 CONTROL_TEMPLATE="$REPO_ROOT/debian/control.in"
 sed \
   -e "s#@PACKAGE_ID@#${PACKAGE_ID}#g" \
-  -e "s#@PACKAGE_NAME@#${PACKAGE_NAME}#g" \
   -e "s#@PACKAGE_VERSION@#${PACKAGE_VERSION}#g" \
   -e "s#@PY_MAJOR_MINOR@#${PY_MAJOR_MINOR}#g" \
+  -e "s#@MPDECIMAL_VER@#${MPDECIMAL_VER}#g" \
   -e "s#@OPENSSL_VER@#${OPENSSL_VER}#g" \
   -e "s#@MIN_IOS@#${MIN_IOS}#g" \
   -e "s#@INSTALLED_SIZE@#${INSTALLED_SIZE}#g" \

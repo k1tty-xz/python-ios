@@ -16,12 +16,12 @@ for tool in curl dpkg-deb file ldid make nm pkg-config shasum sysctl tar xcrun; 
   fi
 done
 
-# Versions are centralized here so the README and CI do not drift apart.
+# Keep build defaults in one place for local builds.
 PY_VER="${PY_VER:-3.14.7}"
 LIBFFI_VER="${LIBFFI_VER:-3.8.0}"
 MPDECIMAL_VER="${MPDECIMAL_VER:-4.0.1}"
 OPENSSL_VER="${OPENSSL_VER:-3.6.4}"
-PACKAGE_REVISION="${PACKAGE_REVISION:-7}"
+PACKAGE_REVISION="${PACKAGE_REVISION:-8}"
 MIN_IOS="${MIN_IOS:-14.5}"
 IOS_SDK_VERSION="${IOS_SDK_VERSION:-}"
 JOBS="${JOBS:-$(sysctl -n hw.ncpu)}"

@@ -1,3 +1,10 @@
+python3 (3.14.7-8) stable; urgency=medium
+
+  * Fix the generated package description version.
+  * Simplify Homebrew tool installation and CI validation.
+
+ -- k1tty-xz  Mon, 31 Aug 2026 22:00:00 +0000
+
 python3 (3.14.7-7) stable; urgency=medium
 
   * Ship the target arm64 Python executable for standalone device use.

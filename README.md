@@ -50,7 +50,7 @@ make all
 The package is written to `work/`:
 
 ```text
-work/python3.14_3.14.7-7_iphoneos-arm.deb
+work/python3.14_3.14.7-8_iphoneos-arm.deb
 ```
 
 Individual stages are available:

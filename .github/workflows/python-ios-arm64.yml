@@ -66,7 +66,6 @@ jobs:
           dpkg-deb --extract "$package" "$verify_dir"
           test -x "$verify_dir/usr/local/bin/python${PY_VER%.*}"
           test -x "$verify_dir/usr/local/bin/python3"
-          test -e "$verify_dir/usr/local/bin/python3"
           while IFS= read -r -d '' file_path; do
             description="$(file -b "$file_path")"
             if [[ "$description" == *Mach-O* ]]; then
