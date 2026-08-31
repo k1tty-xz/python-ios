@@ -25,7 +25,6 @@ cd "libffi-${LIBFFI_VER}"
 ./configure \
   --host="${HOST_TRIPLE}" \
   --prefix="${LIBFFI_PREFIX}" \
-  --disable-raw-api \
   --disable-shared \
   --enable-static \
   --disable-multi-os-directory

@@ -68,7 +68,6 @@ export LD="$CC"
   --with-libm= \
   --with-system-libmpdec \
   --with-ensurepip=install \
-  --without-remote-debug \
   --disable-test-modules \
   LIBFFI_CFLAGS="$LIBFFI_CFLAGS" \
   LIBFFI_LIBS="$LIBFFI_LIBS" \
