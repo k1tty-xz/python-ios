@@ -1,5 +1,5 @@
 Package: @PACKAGE_ID@
-Name: CPython for iOS
+Name: Python 3.14
 Version: @PACKAGE_VERSION@
 Section: Development
 Priority: optional
