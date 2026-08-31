@@ -65,8 +65,10 @@ export LD="$CC"
   --with-build-python="$PYTHON_FOR_BUILD" \
   --with-openssl="$DEPS/openssl-ios/usr/local" \
   --with-openssl-rpath=no \
+  --with-libm= \
   --with-system-libmpdec \
   --with-ensurepip=install \
+  --without-remote-debug \
   --disable-test-modules \
   LIBFFI_CFLAGS="$LIBFFI_CFLAGS" \
   LIBFFI_LIBS="$LIBFFI_LIBS" \
