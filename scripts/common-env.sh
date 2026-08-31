@@ -59,9 +59,11 @@ AR="$(xcrun --sdk "$SDK_NAME" -f ar)"
 RANLIB="$(xcrun --sdk "$SDK_NAME" -f ranlib)"
 STRIP="$(xcrun --sdk "$SDK_NAME" -f strip)"
 
-# Use CPython's documented device target. The package is still a standalone
-# jailbreak executable; it does not need to be an iOS app framework.
-HOST_TRIPLE="arm64-apple-ios"
+# CPython's iOS configure mode is framework-only. This project produces a
+# standalone jailbreak executable, so configure must see Darwin while Clang
+# still targets the iPhoneOS SDK explicitly below.
+HOST_TRIPLE="arm64-apple-darwin"
+IOS_TARGET_TRIPLE="arm64-apple-ios"
 BUILD_TRIPLE="$(uname -m)-apple-darwin"
 
 LIBFFI_PREFIX="$DEPS/libffi-ios/usr/local"
@@ -73,9 +75,9 @@ export PY_MAJOR_MINOR PACKAGE_NAME PACKAGE_ID PACKAGE_VERSION
 export PYTHON_SHA256 LIBFFI_SHA256 OPENSSL_SHA256
 export JOBS WORKDIR DEPS BUILD STAGE PKGROOT REPO_ROOT IOS_SDK SDK_NAME
 export LIBFFI_PREFIX LIBFFI_CFLAGS LIBFFI_LIBS
-export HOST_TRIPLE BUILD_TRIPLE CC CXX AR RANLIB STRIP
-export CFLAGS="-target arm64-apple-ios${MIN_IOS} -arch arm64 -isysroot ${IOS_SDK} -miphoneos-version-min=${MIN_IOS} -fPIC"
-export LDFLAGS="-target arm64-apple-ios${MIN_IOS} -arch arm64 -isysroot ${IOS_SDK} -miphoneos-version-min=${MIN_IOS}"
+export HOST_TRIPLE IOS_TARGET_TRIPLE BUILD_TRIPLE CC CXX AR RANLIB STRIP
+export CFLAGS="-target ${IOS_TARGET_TRIPLE}${MIN_IOS} -arch arm64 -isysroot ${IOS_SDK} -miphoneos-version-min=${MIN_IOS} -fPIC"
+export LDFLAGS="-target ${IOS_TARGET_TRIPLE}${MIN_IOS} -arch arm64 -isysroot ${IOS_SDK} -miphoneos-version-min=${MIN_IOS}"
 
 fetch_verified() {
   local url="$1"

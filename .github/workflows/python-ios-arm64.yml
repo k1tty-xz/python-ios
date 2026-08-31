@@ -37,6 +37,12 @@ jobs:
             ios-${{ runner.os }}-sdk-${{ steps.sdk.outputs.version }}-openssl-${{ env.OPENSSL_VER }}-libffi-${{ env.LIBFFI_VER }}-
             ios-${{ runner.os }}-sdk-${{ steps.sdk.outputs.version }}-
 
+      - name: Remove unrelated Homebrew tap
+        run: |
+          if brew tap | grep -qx 'aws/tap'; then
+            brew untap aws/tap
+          fi
+
       - name: Install build tools
         run: bash scripts/install-build-tools.sh
 

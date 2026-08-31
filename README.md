@@ -60,8 +60,9 @@ make distclean  # remove all generated output
 ```
 
 The build explicitly propagates the iOS SDK compiler, linker, archiver, and
-strip tools. CPython 3.14's supported `arm64-apple-ios` device cross-build is
-used for this standalone jailbreak layout; no generated source patch or
+strip tools. Clang targets `arm64-apple-ios` while CPython uses its Darwin
+configure path, which is required for a standalone jailbreak layout because
+CPython's iOS configure path is framework-only. No generated source patch or
 network-fetched GNU config files are required.
 
 ## GitHub Actions

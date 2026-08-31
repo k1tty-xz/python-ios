@@ -39,9 +39,9 @@ fi
 
 cd "$PYTHON_SOURCE"
 
-# This package intentionally produces a standalone jailbreak executable. Use
-# CPython's supported iOS device cross-build model while forcing every compile
-# and link operation to the iOS SDK.
+# This package intentionally produces a standalone jailbreak executable. Keep
+# CPython's configure host in Darwin mode (its iOS mode requires a framework),
+# while forcing every compile and link operation to the iOS SDK.
 IOS_STUB_BIN="$PYTHON_SOURCE/Apple/iOS/Resources/bin"
 if [[ ! -x "$IOS_STUB_BIN/arm64-apple-ios-clang" ]]; then
   echo "Error: CPython iOS compiler stubs are missing from the source archive." >&2
@@ -93,6 +93,10 @@ ac_cv_func_getaddrinfo=yes
 ac_cv_working_getaddrinfo=yes
 ac_cv_buggy_getaddrinfo=no
 ac_cv_func_getnameinfo=yes
+
+# CPython's Darwin probe can otherwise select the macOS SDK's libffi. The
+# staged libffi.pc below is the only libffi intended for this iOS build.
+ac_cv_lib_ffi_ffi_call=no
 EOF
 export CONFIG_SITE="$PWD/config.site"
 
@@ -101,6 +105,7 @@ export LDFLAGS="-L$DEPS/openssl-ios/usr/local/lib -L$DEPS/libffi-ios/usr/local/l
 export LIBS="-lssl -lcrypto"
 export PKG_CONFIG_PATH="$LIBFFI_PREFIX/lib/pkgconfig:$DEPS/openssl-ios/usr/local/lib/pkgconfig"
 export PKG_CONFIG_LIBDIR="$PKG_CONFIG_PATH"
+export PKG_CONFIG="$(command -v pkg-config)"
 export LD="$CC"
 export LDSHARED="$CC -bundle -undefined dynamic_lookup $LDFLAGS"
 export LDCXXSHARED="$CXX -bundle -undefined dynamic_lookup $LDFLAGS"
