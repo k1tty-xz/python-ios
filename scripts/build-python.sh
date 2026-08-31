@@ -87,6 +87,13 @@ fi
 make -j"$JOBS"
 make install ENSUREPIP=no DESTDIR="$STAGE"
 
+TARGET_PYTHON="$PYTHON_SOURCE/python"
+if [[ ! -x "$TARGET_PYTHON" ]]; then
+  echo "Error: target Python executable was not produced at $TARGET_PYTHON." >&2
+  exit 1
+fi
+install -m 0755 "$TARGET_PYTHON" "$STAGE/usr/local/bin/python${PY_MAJOR_MINOR}"
+
 FRAMEWORK="$STAGE/usr/local/Python.framework"
 if [[ ! -x "$FRAMEWORK/Python" ]] || [[ ! -d "$STAGE/usr/local/lib" ]]; then
   echo "Error: CPython iOS framework install is incomplete." >&2

@@ -15,6 +15,7 @@ Description: The Python @PY_MAJOR_MINOR@ interpreter for iOS.
   * The Python @PY_MAJOR_MINOR@ interpreter (python3, python@PY_MAJOR_MINOR@)
   * Standard library with SSL support (OpenSSL @OPENSSL_VER@)
   * ctypes FFI for loading dynamic libraries
+  * decimal arithmetic through libmpdec @MPDECIMAL_VER@
  .
  Note: pip is NOT installed by default. To install it, run:
    python3 -m ensurepip

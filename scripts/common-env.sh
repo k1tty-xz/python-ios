@@ -9,7 +9,7 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
   exit 1
 fi
 
-for tool in curl dpkg-deb file ldid make nm pkg-config shasum sysctl tar xcrun; do
+for tool in curl dpkg-deb file install ldid make nm pkg-config shasum sysctl tar xcrun; do
   if ! command -v "$tool" >/dev/null 2>&1; then
     echo "Error: required command not found: $tool" >&2
     exit 1

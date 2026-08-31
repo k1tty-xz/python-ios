@@ -17,6 +17,16 @@ rm -rf "$PKGROOT"
 mkdir -p "$PKGROOT/DEBIAN"
 cp -pR "$STAGE/usr" "$PKGROOT/"
 
+PYTHON_BIN="$PKGROOT/usr/local/bin/python${PY_MAJOR_MINOR}"
+if [[ ! -x "$PYTHON_BIN" ]]; then
+  echo "Error: packaged Python executable is missing: $PYTHON_BIN" >&2
+  exit 1
+fi
+if [[ ! -x "$PKGROOT/usr/local/bin/python3" ]]; then
+  echo "Error: python3 launcher is missing or dangling." >&2
+  exit 1
+fi
+
 INSTALLED_SIZE="$(du -sk "$PKGROOT/usr" | awk '{print $1}')"
 CONTROL_TEMPLATE="$REPO_ROOT/debian/control.in"
 sed \
