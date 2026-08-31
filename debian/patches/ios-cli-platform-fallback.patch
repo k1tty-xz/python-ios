@@ -1,7 +1,7 @@
 diff --git a/Lib/_ios_support.py b/Lib/_ios_support.py
 --- a/Lib/_ios_support.py
 +++ b/Lib/_ios_support.py
-@@ -26,6 +26,10 @@ def get_platform_ios():
+@@ -38,5 +38,10 @@ def get_platform_ios():
      # Equivalent of:
      #   device = [UIDevice currentDevice]
      UIDevice = objc.objc_getClass(b"UIDevice")
@@ -13,10 +13,7 @@ diff --git a/Lib/_ios_support.py b/Lib/_ios_support.py
      device = objc.objc_msgSend(UIDevice, SEL_currentDevice)
 +    if not device:
 +        return None
- 
-     # Equivalent of:
-     #   device_systemVersion = [device systemVersion]
-@@ -43,6 +47,9 @@ def get_platform_ios():
+@@ -54,4 +59,7 @@ def get_platform_ios():
      SEL_model = objc.sel_registerName(b"model")
      device_model = objc.objc_msgSend(device, SEL_model)
  
@@ -26,7 +23,7 @@ diff --git a/Lib/_ios_support.py b/Lib/_ios_support.py
      # UTF8String returns a const char*;
      SEL_UTF8String = objc.sel_registerName(b"UTF8String")
      objc.objc_msgSend.restype = c_char_p
-@@ -53,9 +60,15 @@ def get_platform_ios():
+@@ -63,8 +70,10 @@ def get_platform_ios():
      #   system = [device_systemName UTF8String]
      #   release = [device_systemVersion UTF8String]
      #   model = [device_model UTF8String]
