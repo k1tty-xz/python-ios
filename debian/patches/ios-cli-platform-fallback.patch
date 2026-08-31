@@ -1,7 +1,7 @@
 diff --git a/Lib/_ios_support.py b/Lib/_ios_support.py
 --- a/Lib/_ios_support.py
 +++ b/Lib/_ios_support.py
-@@ -38,13 +38,13 @@
+@@ -38,8 +38,13 @@
 =    # Equivalent of:
 =    #   device = [UIDevice currentDevice]
 =    UIDevice = objc.objc_getClass(b"UIDevice")
@@ -15,7 +15,7 @@ diff --git a/Lib/_ios_support.py b/Lib/_ios_support.py
 =
 =    # Equivalent of:
 =    #   device_systemVersion = [device systemVersion]
-@@ -56,9 +61,9 @@
+@@ -56,6 +61,9 @@
 =    SEL_model = objc.sel_registerName(b"model")
 =    device_model = objc.objc_msgSend(device, SEL_model)
 =
@@ -25,7 +25,7 @@ diff --git a/Lib/_ios_support.py b/Lib/_ios_support.py
 =    # UTF8String returns a const char*;
 =    SEL_UTF8String = objc.sel_registerName(b"UTF8String")
 =    objc.objc_msgSend.restype = c_char_p
-@@ -64,13 +72,13 @@
+@@ -64,8 +72,10 @@
 =    #   system = [device_systemName UTF8String]
 =    #   release = [device_systemVersion UTF8String]
 =    #   model = [device_model UTF8String]
