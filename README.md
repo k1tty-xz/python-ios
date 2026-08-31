@@ -88,5 +88,5 @@ configuration handles platform probes that cannot run on iOS.
 ## License
 
 The build scripts and packaging are MIT-licensed. Python, OpenSSL, libffi, and
-the other included materials retain their own licenses; see [NOTICE](NOTICE)
+the other included materials retain their own licenses; see [LICENSE](LICENSE)
 and [debian/copyright](debian/copyright).
