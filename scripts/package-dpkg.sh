@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build a Debian package from the staged iOS runtime.
 
-set -euxo pipefail
+set -euo pipefail
 
 # shellcheck disable=SC1091
 source "$(dirname -- "${BASH_SOURCE[0]}")/common-env.sh"

@@ -1,8 +1,10 @@
-python3 (3.14.7-4) stable; urgency=medium
+python3 (3.14.7-5) stable; urgency=medium
 
   * Use CPython's official iOS framework build for the packaged runtime.
   * Preserve the Python.framework, runtime library, and launcher layout.
   * Sign and strip all staged Mach-O files, including framework binaries.
+  * Use CPython's native iOS extension linker settings.
+  * Simplify build scripts and keep CI logs concise.
   * Remove the non-applicable libffi multi-os-directory compiler probe.
   * Update GitHub Actions to current Node 24-compatible releases.
 

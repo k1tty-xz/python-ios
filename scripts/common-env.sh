@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Shared, validated configuration for the iOS arm64 build.
-
 set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
@@ -11,7 +9,7 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
   exit 1
 fi
 
-for tool in curl dpkg-deb file ldid make shasum sysctl tar xcrun; do
+for tool in curl dpkg-deb file ldid make nm pkg-config shasum sysctl tar xcrun; do
   if ! command -v "$tool" >/dev/null 2>&1; then
     echo "Error: required command not found: $tool" >&2
     exit 1
@@ -22,7 +20,7 @@ done
 PY_VER="${PY_VER:-3.14.7}"
 LIBFFI_VER="${LIBFFI_VER:-3.8.0}"
 OPENSSL_VER="${OPENSSL_VER:-3.6.4}"
-PACKAGE_REVISION="${PACKAGE_REVISION:-4}"
+PACKAGE_REVISION="${PACKAGE_REVISION:-5}"
 MIN_IOS="${MIN_IOS:-14.5}"
 IOS_SDK_VERSION="${IOS_SDK_VERSION:-}"
 JOBS="${JOBS:-$(sysctl -n hw.ncpu)}"
@@ -58,6 +56,8 @@ CXX="$(xcrun --sdk "$SDK_NAME" -f clang++)"
 AR="$(xcrun --sdk "$SDK_NAME" -f ar)"
 RANLIB="$(xcrun --sdk "$SDK_NAME" -f ranlib)"
 STRIP="$(xcrun --sdk "$SDK_NAME" -f strip)"
+NM="$(xcrun --sdk "$SDK_NAME" -f nm)"
+PKG_CONFIG="$(command -v pkg-config)"
 
 # Use CPython's documented iOS device target and framework build mode.
 HOST_TRIPLE="arm64-apple-ios"
@@ -72,7 +72,7 @@ export PY_MAJOR_MINOR PACKAGE_NAME PACKAGE_ID PACKAGE_VERSION
 export PYTHON_SHA256 LIBFFI_SHA256 OPENSSL_SHA256
 export JOBS WORKDIR DEPS BUILD STAGE PKGROOT REPO_ROOT IOS_SDK SDK_NAME
 export LIBFFI_PREFIX LIBFFI_CFLAGS LIBFFI_LIBS
-export HOST_TRIPLE BUILD_TRIPLE CC CXX AR RANLIB STRIP
+export HOST_TRIPLE BUILD_TRIPLE CC CXX AR RANLIB STRIP NM PKG_CONFIG
 export CFLAGS="-target ${HOST_TRIPLE}${MIN_IOS} -arch arm64 -isysroot ${IOS_SDK} -miphoneos-version-min=${MIN_IOS} -fPIC"
 export LDFLAGS="-target ${HOST_TRIPLE}${MIN_IOS} -arch arm64 -isysroot ${IOS_SDK} -miphoneos-version-min=${MIN_IOS}"
 

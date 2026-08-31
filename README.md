@@ -48,7 +48,7 @@ make all
 The package is written to `work/`:
 
 ```text
-work/python3.14_3.14.7-4_iphoneos-arm.deb
+work/python3.14_3.14.7-5_iphoneos-arm.deb
 ```
 
 Individual stages are available:
@@ -63,8 +63,9 @@ make distclean  # remove all generated output
 
 The build explicitly propagates the iOS SDK compiler, linker, archiver, and
 strip tools and invokes CPython with `--enable-framework`,
-`--host=arm64-apple-ios`, and `--build=arm64-apple-darwin`. No generated source
-patch or network-fetched GNU config files are required.
+`--host=arm64-apple-ios`, and `--build=arm64-apple-darwin`. The build uses
+small, tracked CPython configuration files and does not patch third-party
+source.
 
 ## GitHub Actions
 

@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# Build the standalone CPython runtime for jailbroken iOS arm64.
-
-set -euxo pipefail
+set -euo pipefail
 
 # shellcheck disable=SC1091
 source "$(dirname -- "${BASH_SOURCE[0]}")/common-env.sh"
@@ -39,8 +37,6 @@ fi
 
 cd "$PYTHON_SOURCE"
 
-# Use CPython's documented iOS framework build. The resulting framework,
-# runtime library, and launcher are relocated together into the jailbreak .deb.
 IOS_STUB_BIN="$PYTHON_SOURCE/Apple/iOS/Resources/bin"
 if [[ ! -x "$IOS_STUB_BIN/arm64-apple-ios-clang" ]]; then
   echo "Error: CPython iOS compiler stubs are missing from the source archive." >&2
@@ -55,55 +51,15 @@ export AR=arm64-apple-ios-ar
 export RANLIB=ranlib
 export STRIP=arm64-apple-ios-strip
 
-cat > Modules/Setup.local <<'EOF'
-*disabled*
-nis
-_remote_debugging
-EOF
-
-cat > config.site <<'EOF'
-# Files unavailable on iOS.
-ac_cv_file__dev_ptc=no
-ac_cv_file__dev_ptmx=no
-
-# APIs unavailable or unsuitable for a standalone iOS process.
-ac_cv_func_system=no
-ac_cv_func_pipe2=no
-ac_cv_func_forkpty=no
-ac_cv_func_openpty=no
-ac_cv_func_sendfile=no
-ac_cv_func_preadv=no
-ac_cv_func_pwritev=no
-ac_cv_func_getentropy=no
-ac_cv_func_utimensat=no
-ac_cv_func_posix_fallocate=no
-ac_cv_func_clock_settime=no
-
-# NIS is not available on iOS.
-ac_cv_header_rpcsvc_yp_prot_h=no
-ac_cv_header_rpcsvc_ypclnt_h=no
-ac_cv_header_rpcsvc_rpcsvc_h=no
-ac_cv_func_yp_get_default_domain=no
-ac_cv_lib_nsl_yp_get_default_domain=no
-ac_cv_have_nis=no
-
-# Networking APIs are available in the iOS SDK.
-ac_cv_func_getaddrinfo=yes
-ac_cv_working_getaddrinfo=yes
-ac_cv_buggy_getaddrinfo=no
-ac_cv_func_getnameinfo=yes
-EOF
-export CONFIG_SITE="$PWD/config.site"
+cp "$REPO_ROOT/scripts/python-setup.local" Modules/Setup.local
+export CONFIG_SITE="$REPO_ROOT/scripts/cpython-ios.config.site"
 
 export CPPFLAGS="-I$DEPS/openssl-ios/usr/local/include -I$DEPS/libffi-ios/usr/local/include"
 export LDFLAGS="-L$DEPS/openssl-ios/usr/local/lib -L$DEPS/libffi-ios/usr/local/lib $LDFLAGS"
 export LIBS="-lssl -lcrypto"
 export PKG_CONFIG_PATH="$LIBFFI_PREFIX/lib/pkgconfig:$DEPS/openssl-ios/usr/local/lib/pkgconfig"
 export PKG_CONFIG_LIBDIR="$PKG_CONFIG_PATH"
-export PKG_CONFIG="$(command -v pkg-config)"
 export LD="$CC"
-export LDSHARED="$CC -bundle -undefined dynamic_lookup $LDFLAGS"
-export LDCXXSHARED="$CXX -bundle -undefined dynamic_lookup $LDFLAGS"
 
 ./configure \
   --enable-framework=/usr/local \
@@ -117,7 +73,7 @@ export LDCXXSHARED="$CXX -bundle -undefined dynamic_lookup $LDFLAGS"
   LIBFFI_CFLAGS="$LIBFFI_CFLAGS" \
   LIBFFI_LIBS="$LIBFFI_LIBS"
 
-# Cross-compilation cannot execute the freshly built target extension modules.
+# Cross-compilation cannot execute target extension modules on the build host.
 if grep -q '^checksharedmods:' Makefile; then
   awk '
     /^checksharedmods:/ { print "checksharedmods:\n\t@true"; skip=1; next }

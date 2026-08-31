@@ -14,7 +14,7 @@ jobs:
       PY_VER: 3.14.7
       LIBFFI_VER: 3.8.0
       OPENSSL_VER: 3.6.4
-      PACKAGE_REVISION: 4
+      PACKAGE_REVISION: 5
       MIN_IOS: 14.5
 
     steps:
@@ -54,7 +54,7 @@ jobs:
 
       - name: Build and package
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           PYTHON_FOR_BUILD="${{ steps.py.outputs.python-path }}" make all
 
       - name: Upload .deb artifact
