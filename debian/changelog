@@ -1,8 +1,8 @@
-python3 (3.14.7-3) stable; urgency=medium
+python3 (3.14.7-4) stable; urgency=medium
 
-  * Target arm64-apple-ios while retaining CPython's standalone Darwin
-    configure path.
-  * Link _ctypes against the staged iOS libffi instead of macOS libffi.
+  * Use CPython's official iOS framework build for the packaged runtime.
+  * Preserve the Python.framework, runtime library, and launcher layout.
+  * Sign and strip all staged Mach-O files, including framework binaries.
   * Remove the non-applicable libffi multi-os-directory compiler probe.
   * Update GitHub Actions to current Node 24-compatible releases.
 

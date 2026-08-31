@@ -1,7 +1,7 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: Python 3.14 for iOS
 Upstream-Contact: k1tty-xz
-Source: https://github.com/k1tty-xz/python3.12-ios-arm64
+Source: https://github.com/k1tty-xz/python-ios-arm64
 
 Files: *
 Copyright: 2025-2026 k1tty-xz

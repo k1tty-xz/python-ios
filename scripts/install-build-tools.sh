@@ -20,10 +20,10 @@ export HOMEBREW_NO_INSTALL_CLEANUP=1
 # Only install tools that are not already provided by macOS/Xcode.
 FORMULAE=(dpkg ldid pkg-config)
 
-# Install only missing formulas. Fully qualify official Homebrew core so an
-# unrelated third-party tap cannot affect or warn during dependency setup.
+# Install only missing formulas, resolving each dependency from official core.
 for f in "${FORMULAE[@]}"; do
-  if brew list --formula | grep -qx "${f}"; then
+  if brew list --formula | grep -qx "${f}" ||
+     [[ "${f}" == pkg-config ]] && brew list --formula | grep -qx pkgconf; then
     echo "Info: ${f} is already installed. Skipping..."
   else
     brew install "homebrew/core/${f}"

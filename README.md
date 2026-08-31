@@ -1,17 +1,19 @@
 # Python for jailbroken iOS (arm64)
 
-This project builds a usable standalone CPython runtime for jailbroken iOS
-devices and packages it as an installable Debian package. It targets iOS
-14.5+ and provides:
+This project builds CPython's official single-architecture iOS framework for
+jailbroken arm64 devices and packages it as an installable Debian package. It
+targets iOS 14.5+ and provides:
 
 - `python3` and `python3.14` under `/usr/local/bin`;
+- the `Python.framework` runtime under `/usr/local`;
 - the Python standard library;
 - TLS through OpenSSL 3.6.4;
 - `ctypes` through libffi; and
 - jailbreak-compatible signing and entitlements.
 
-This is a standalone command-line runtime for jailbroken devices. It is not an
-App Store embedding framework or an iOS XCFramework.
+The package exposes a standalone command-line runtime while preserving the
+framework layout required by CPython on iOS. It is not an XCFramework or an
+App Store application bundle.
 
 ## Build requirements
 
@@ -46,7 +48,7 @@ make all
 The package is written to `work/`:
 
 ```text
-work/python3.14_3.14.7-3_iphoneos-arm.deb
+work/python3.14_3.14.7-4_iphoneos-arm.deb
 ```
 
 Individual stages are available:
@@ -60,10 +62,9 @@ make distclean  # remove all generated output
 ```
 
 The build explicitly propagates the iOS SDK compiler, linker, archiver, and
-strip tools. Clang targets `arm64-apple-ios` while CPython uses its Darwin
-configure path, which is required for a standalone jailbreak layout because
-CPython's iOS configure path is framework-only. No generated source patch or
-network-fetched GNU config files are required.
+strip tools and invokes CPython with `--enable-framework`,
+`--host=arm64-apple-ios`, and `--build=arm64-apple-darwin`. No generated source
+patch or network-fetched GNU config files are required.
 
 ## GitHub Actions
 

@@ -39,9 +39,8 @@ fi
 
 cd "$PYTHON_SOURCE"
 
-# This package intentionally produces a standalone jailbreak executable. Keep
-# CPython's configure host in Darwin mode (its iOS mode requires a framework),
-# while forcing every compile and link operation to the iOS SDK.
+# Use CPython's documented iOS framework build. The resulting framework,
+# runtime library, and launcher are relocated together into the jailbreak .deb.
 IOS_STUB_BIN="$PYTHON_SOURCE/Apple/iOS/Resources/bin"
 if [[ ! -x "$IOS_STUB_BIN/arm64-apple-ios-clang" ]]; then
   echo "Error: CPython iOS compiler stubs are missing from the source archive." >&2
@@ -93,10 +92,6 @@ ac_cv_func_getaddrinfo=yes
 ac_cv_working_getaddrinfo=yes
 ac_cv_buggy_getaddrinfo=no
 ac_cv_func_getnameinfo=yes
-
-# CPython's Darwin probe can otherwise select the macOS SDK's libffi. The
-# staged libffi.pc below is the only libffi intended for this iOS build.
-ac_cv_lib_ffi_ffi_call=no
 EOF
 export CONFIG_SITE="$PWD/config.site"
 
@@ -111,14 +106,16 @@ export LDSHARED="$CC -bundle -undefined dynamic_lookup $LDFLAGS"
 export LDCXXSHARED="$CXX -bundle -undefined dynamic_lookup $LDFLAGS"
 
 ./configure \
+  --enable-framework=/usr/local \
   --host="$HOST_TRIPLE" \
   --build="$BUILD_TRIPLE" \
-  --prefix=/usr/local \
   --with-build-python="$PYTHON_FOR_BUILD" \
   --with-openssl="$DEPS/openssl-ios/usr/local" \
   --with-openssl-rpath=no \
   --with-ensurepip=install \
-  --disable-test-modules
+  --disable-test-modules \
+  LIBFFI_CFLAGS="$LIBFFI_CFLAGS" \
+  LIBFFI_LIBS="$LIBFFI_LIBS"
 
 # Cross-compilation cannot execute the freshly built target extension modules.
 if grep -q '^checksharedmods:' Makefile; then
@@ -133,6 +130,12 @@ fi
 make -j"$JOBS"
 make install ENSUREPIP=no DESTDIR="$STAGE"
 
+FRAMEWORK="$STAGE/usr/local/Python.framework"
+if [[ ! -x "$FRAMEWORK/Python" ]] || [[ ! -d "$STAGE/usr/local/lib" ]]; then
+  echo "Error: CPython iOS framework install is incomplete." >&2
+  exit 1
+fi
+
 ln -sfn "python${PY_MAJOR_MINOR}" "$STAGE/usr/local/bin/python3"
 
 echo "Stripping target Mach-O binaries..."
@@ -140,11 +143,11 @@ while IFS= read -r -d '' file_path; do
   if file -b "$file_path" | grep -q 'Mach-O'; then
     "$STRIP" -x "$file_path"
   fi
-done < <(find "$STAGE" -type f \( -name '*.dylib' -o -name '*.so' -o -path "$STAGE/usr/local/bin/*" \) -print0)
+done < <(find "$STAGE" -type f -print0)
 
 ENTITLEMENTS="$REPO_ROOT/scripts/entitlements.plist"
 while IFS= read -r -d '' file_path; do
   if file -b "$file_path" | grep -q 'Mach-O'; then
     ldid -S"$ENTITLEMENTS" "$file_path"
   fi
-done < <(find "$STAGE" -type f \( -name '*.dylib' -o -name '*.so' -o -path "$STAGE/usr/local/bin/*" \) -print0)
+done < <(find "$STAGE" -type f -print0)
