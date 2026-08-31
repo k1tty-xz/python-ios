@@ -92,6 +92,7 @@ LAUNCHER_OBJECT="$WORKDIR/python-launcher.o"
   -o "$LAUNCHER_OBJECT"
 "$CC" $LDFLAGS \
   -F"$STAGE/usr/local" \
+  -Wl,-rpath,@executable_path/.. \
   -framework Python \
   "$LAUNCHER_OBJECT" \
   -o "$STAGE/usr/local/bin/python${PY_MAJOR_MINOR}"

@@ -1,3 +1,10 @@
+python3 (3.14.7-13) stable; urgency=medium
+
+  * Add the Python.framework runtime path to the standalone launcher.
+  * Validate the launcher rpath in CI before publishing the package.
+
+ -- k1tty-xz  Tue, 01 Sep 2026 00:15:00 +0000
+
 python3 (3.14.7-12) stable; urgency=medium
 
   * Set the package display name to Python 3.14.

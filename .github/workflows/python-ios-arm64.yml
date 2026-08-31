@@ -16,7 +16,7 @@ jobs:
       PY_VER: 3.14.7
       LIBFFI_VER: 3.8.0
       OPENSSL_VER: 3.6.4
-      PACKAGE_REVISION: 12
+      PACKAGE_REVISION: 13
       MIN_IOS: 14.5
 
     steps:
@@ -64,8 +64,11 @@ jobs:
           rm -rf "$verify_dir"
           mkdir -p "$verify_dir"
           dpkg-deb --extract "$package" "$verify_dir"
-          test -x "$verify_dir/usr/local/bin/python${PY_VER%.*}"
+          launcher="$verify_dir/usr/local/bin/python${PY_VER%.*}"
+          test -x "$launcher"
           test -x "$verify_dir/usr/local/bin/python3"
+          test -f "$verify_dir/usr/local/Python.framework/Python"
+          otool -l "$launcher" | grep -A 2 LC_RPATH | grep -Fq "@executable_path/.."
           while IFS= read -r -d '' file_path; do
             description="$(file -b "$file_path")"
             if [[ "$description" == *Mach-O* ]]; then
