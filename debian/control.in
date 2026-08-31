@@ -1,5 +1,5 @@
 Package: @PACKAGE_ID@
-Name: Python @PY_MAJOR_MINOR@ (k1tty-xz)
+Name: CPython for iOS
 Version: @PACKAGE_VERSION@
 Section: Development
 Priority: optional
