@@ -19,4 +19,3 @@ Description: The Python @PY_MAJOR_MINOR@ interpreter for iOS.
  .
  Note: pip is NOT installed by default. To install it, run:
    python3 -m ensurepip
-Icon: https://raw.githubusercontent.com/k1tty-xz/python-ios-arm64/refs/heads/main/icons/icon.png

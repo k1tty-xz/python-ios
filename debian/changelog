@@ -1,4 +1,10 @@
-python3 (3.14.7-8) stable; urgency=medium
+python3 (3.14.7-9) stable; urgency=medium
+
+  * Remove the unused package icon reference.
+  * Keep the package revision synchronized with the cleaned repository.
+
+ -- k1tty-xz  Mon, 31 Aug 2026 22:30:00 +0000
+
 
   * Fix the generated package description version.
   * Simplify Homebrew tool installation and CI validation.
