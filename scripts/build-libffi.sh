@@ -14,10 +14,15 @@ source "$(dirname "$0")/common-env.sh"
 # Check for Existing Build
 # ------------------------------------------------------------------------------
 # If the static library already exists, skip the build to save time.
-if [ -f "$DEPS/libffi-ios/usr/local/lib/libffi.a" ]; then
+if [[ -f "$LIBFFI_PREFIX/lib/libffi.a" ]] &&
+   [[ -f "$LIBFFI_PREFIX/lib/pkgconfig/libffi.pc" ]] &&
+   grep -Fqx "prefix=$LIBFFI_PREFIX" "$LIBFFI_PREFIX/lib/pkgconfig/libffi.pc"; then
   echo "Info: libffi already built. Skipping..."
   exit 0
 fi
+
+# Do not reuse an install made with the old host prefix or macOS libffi.
+rm -rf "$DEPS/libffi-ios"
 
 cd "$DEPS"
 
@@ -39,15 +44,17 @@ cd "libffi-${LIBFFI_VER}"
 # CFLAGS/LDFLAGS/CC/AR/RANLIB are explicitly exported by common-env.sh.
 ./configure \
   --host="${HOST_TRIPLE}" \
-  --prefix=/usr/local \
+  --prefix="${LIBFFI_PREFIX}" \
   --disable-shared \
-  --enable-static
+  --enable-static \
+  --disable-multi-os-directory
 
 # Compile using the number of available CPU cores
 make -j"${JOBS}"
 
-# Install to the dependency staging directory
-make install DESTDIR="$DEPS/libffi-ios"
+# Install directly into the dependency staging directory so libffi.pc
+# advertises the exact headers and library used by the CPython build.
+make install
 
 # ------------------------------------------------------------------------------
 # Cleanup

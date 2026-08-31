@@ -22,7 +22,7 @@ done
 PY_VER="${PY_VER:-3.14.7}"
 LIBFFI_VER="${LIBFFI_VER:-3.8.0}"
 OPENSSL_VER="${OPENSSL_VER:-3.6.4}"
-PACKAGE_REVISION="${PACKAGE_REVISION:-2}"
+PACKAGE_REVISION="${PACKAGE_REVISION:-3}"
 MIN_IOS="${MIN_IOS:-14.5}"
 IOS_SDK_VERSION="${IOS_SDK_VERSION:-}"
 JOBS="${JOBS:-$(sysctl -n hw.ncpu)}"
@@ -59,15 +59,20 @@ AR="$(xcrun --sdk "$SDK_NAME" -f ar)"
 RANLIB="$(xcrun --sdk "$SDK_NAME" -f ranlib)"
 STRIP="$(xcrun --sdk "$SDK_NAME" -f strip)"
 
-# Keep the Darwin host triple because this package intentionally produces a
-# standalone jailbreak executable rather than an iOS app framework.
-HOST_TRIPLE="aarch64-apple-darwin"
+# Use CPython's documented device target. The package is still a standalone
+# jailbreak executable; it does not need to be an iOS app framework.
+HOST_TRIPLE="arm64-apple-ios"
 BUILD_TRIPLE="$(uname -m)-apple-darwin"
+
+LIBFFI_PREFIX="$DEPS/libffi-ios/usr/local"
+LIBFFI_CFLAGS="-I${LIBFFI_PREFIX}/include"
+LIBFFI_LIBS="-L${LIBFFI_PREFIX}/lib -lffi"
 
 export PY_VER LIBFFI_VER OPENSSL_VER PACKAGE_REVISION MIN_IOS IOS_SDK_VERSION
 export PY_MAJOR_MINOR PACKAGE_NAME PACKAGE_ID PACKAGE_VERSION
 export PYTHON_SHA256 LIBFFI_SHA256 OPENSSL_SHA256
 export JOBS WORKDIR DEPS BUILD STAGE PKGROOT REPO_ROOT IOS_SDK SDK_NAME
+export LIBFFI_PREFIX LIBFFI_CFLAGS LIBFFI_LIBS
 export HOST_TRIPLE BUILD_TRIPLE CC CXX AR RANLIB STRIP
 export CFLAGS="-target arm64-apple-ios${MIN_IOS} -arch arm64 -isysroot ${IOS_SDK} -miphoneos-version-min=${MIN_IOS} -fPIC"
 export LDFLAGS="-target arm64-apple-ios${MIN_IOS} -arch arm64 -isysroot ${IOS_SDK} -miphoneos-version-min=${MIN_IOS}"

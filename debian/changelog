@@ -1,3 +1,12 @@
+python3 (3.14.7-3) stable; urgency=medium
+
+  * Use CPython's documented arm64-apple-ios device target.
+  * Link _ctypes against the staged iOS libffi instead of macOS libffi.
+  * Remove the non-applicable libffi multi-os-directory compiler probe.
+  * Update GitHub Actions to current Node 24-compatible releases.
+
+ -- k1tty-xz  Mon, 31 Aug 2026 00:00:00 +0000
+
 python3 (3.14.7-2) stable; urgency=medium
 
   * V2 release for jailbroken iOS arm64.

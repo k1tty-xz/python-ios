@@ -14,12 +14,12 @@ jobs:
       PY_VER: 3.14.7
       LIBFFI_VER: 3.8.0
       OPENSSL_VER: 3.6.4
-      PACKAGE_REVISION: 2
+      PACKAGE_REVISION: 3
       MIN_IOS: 14.5
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Discover SDK version
         id: sdk
@@ -27,7 +27,7 @@ jobs:
           echo "version=$(xcrun --sdk iphoneos --show-sdk-version)" >> "$GITHUB_OUTPUT"
 
       - name: Restore dependency cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: |
             work/deps/openssl-ios
@@ -42,7 +42,7 @@ jobs:
 
       - name: Set up host Python
         id: py
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: '3.14.7'
 
@@ -52,7 +52,7 @@ jobs:
           PYTHON_FOR_BUILD="${{ steps.py.outputs.python-path }}" make all
 
       - name: Upload .deb artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: python3.14_${{ env.PY_VER }}-${{ env.PACKAGE_REVISION }}_iphoneos-arm
           path: work/python3.14_${{ env.PY_VER }}-${{ env.PACKAGE_REVISION }}_iphoneos-arm.deb

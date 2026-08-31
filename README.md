@@ -46,7 +46,7 @@ make all
 The package is written to `work/`:
 
 ```text
-work/python3.14_3.14.7-2_iphoneos-arm.deb
+work/python3.14_3.14.7-3_iphoneos-arm.deb
 ```
 
 Individual stages are available:
@@ -60,9 +60,9 @@ make distclean  # remove all generated output
 ```
 
 The build explicitly propagates the iOS SDK compiler, linker, archiver, and
-strip tools. CPython 3.14's supported Darwin cross-build is used for this
-standalone jailbreak layout; no generated source patch or network-fetched GNU
-config files are required.
+strip tools. CPython 3.14's supported `arm64-apple-ios` device cross-build is
+used for this standalone jailbreak layout; no generated source patch or
+network-fetched GNU config files are required.
 
 ## GitHub Actions
 

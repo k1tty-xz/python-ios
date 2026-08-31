@@ -40,8 +40,8 @@ fi
 cd "$PYTHON_SOURCE"
 
 # This package intentionally produces a standalone jailbreak executable. Use
-# CPython's supported Darwin cross-build model while forcing every compile and
-# link operation to the iOS SDK.
+# CPython's supported iOS device cross-build model while forcing every compile
+# and link operation to the iOS SDK.
 IOS_STUB_BIN="$PYTHON_SOURCE/Apple/iOS/Resources/bin"
 if [[ ! -x "$IOS_STUB_BIN/arm64-apple-ios-clang" ]]; then
   echo "Error: CPython iOS compiler stubs are missing from the source archive." >&2
@@ -99,7 +99,8 @@ export CONFIG_SITE="$PWD/config.site"
 export CPPFLAGS="-I$DEPS/openssl-ios/usr/local/include -I$DEPS/libffi-ios/usr/local/include"
 export LDFLAGS="-L$DEPS/openssl-ios/usr/local/lib -L$DEPS/libffi-ios/usr/local/lib $LDFLAGS"
 export LIBS="-lssl -lcrypto"
-export PKG_CONFIG_PATH="$DEPS/libffi-ios/usr/local/lib/pkgconfig:$DEPS/openssl-ios/usr/local/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+export PKG_CONFIG_PATH="$LIBFFI_PREFIX/lib/pkgconfig:$DEPS/openssl-ios/usr/local/lib/pkgconfig"
+export PKG_CONFIG_LIBDIR="$PKG_CONFIG_PATH"
 export LD="$CC"
 export LDSHARED="$CC -bundle -undefined dynamic_lookup $LDFLAGS"
 export LDCXXSHARED="$CXX -bundle -undefined dynamic_lookup $LDFLAGS"
