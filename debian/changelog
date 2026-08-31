@@ -1,3 +1,11 @@
+python3 (3.14.7-7) stable; urgency=medium
+
+  * Ship the target arm64 Python executable for standalone device use.
+  * Reject packages with a missing or dangling Python launcher.
+  * Keep package metadata and release filenames synchronized.
+
+ -- k1tty-xz  Mon, 31 Aug 2026 21:30:00 +0000
+
 python3 (3.14.7-6) stable; urgency=medium
 
   * Build decimal with the current upstream mpdecimal library.
