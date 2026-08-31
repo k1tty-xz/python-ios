@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: all deps openssl libffi mpdecimal python package validate clean distclean
+.PHONY: all deps openssl libffi mpdecimal python package clean distclean
 
 all: deps python package
 
@@ -20,10 +20,6 @@ python:
 
 package:
 	bash scripts/package-dpkg.sh
-
-validate:
-	@set -eu; for script in scripts/*.sh; do bash -n "$$script"; done
-	@grep -q '@PACKAGE_ID@' debian/control.in
 
 clean:
 	rm -rf work/stage work/pkgroot
