@@ -1,8 +1,6 @@
 name: Build Python 3.14 for iOS (arm64) and package .deb
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
