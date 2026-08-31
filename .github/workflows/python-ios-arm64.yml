@@ -53,6 +53,27 @@ jobs:
           set -euo pipefail
           PYTHON_FOR_BUILD="${{ steps.py.outputs.python-path }}" make all
 
+      - name: Validate package
+        run: |
+          set -euo pipefail
+          package="work/python3.14_${PY_VER}-${PACKAGE_REVISION}_iphoneos-arm.deb"
+          verify_dir="work/package-verify"
+          test -f "$package"
+          test "$(dpkg-deb --field "$package" Architecture)" = "iphoneos-arm"
+          test "$(dpkg-deb --field "$package" Version)" = "${PY_VER}-${PACKAGE_REVISION}"
+          rm -rf "$verify_dir"
+          mkdir -p "$verify_dir"
+          dpkg-deb --extract "$package" "$verify_dir"
+          test -x "$verify_dir/usr/local/bin/python${PY_VER%.*}"
+          test -x "$verify_dir/usr/local/bin/python3"
+          test -e "$verify_dir/usr/local/bin/python3"
+          while IFS= read -r -d '' file_path; do
+            description="$(file -b "$file_path")"
+            if [[ "$description" == *Mach-O* ]]; then
+              [[ "$description" == *arm64* ]]
+            fi
+          done < <(find "$verify_dir" -type f -print0)
+
       - name: Upload .deb artifact
         uses: actions/upload-artifact@v7
         with:
