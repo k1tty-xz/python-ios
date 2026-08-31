@@ -92,7 +92,8 @@ if [[ ! -x "$TARGET_PYTHON" ]]; then
   echo "Error: target Python executable was not produced at $TARGET_PYTHON." >&2
   exit 1
 fi
-install -m 0755 "$TARGET_PYTHON" "$STAGE/usr/local/bin/python${PY_MAJOR_MINOR}"
+cp -p "$TARGET_PYTHON" "$STAGE/usr/local/bin/python${PY_MAJOR_MINOR}"
+chmod 0755 "$STAGE/usr/local/bin/python${PY_MAJOR_MINOR}"
 
 FRAMEWORK="$STAGE/usr/local/Python.framework"
 if [[ ! -x "$FRAMEWORK/Python" ]] || [[ ! -d "$STAGE/usr/local/lib" ]]; then
