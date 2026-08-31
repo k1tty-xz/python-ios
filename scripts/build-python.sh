@@ -87,13 +87,17 @@ fi
 make -j"$JOBS"
 make install ENSUREPIP=no DESTDIR="$STAGE"
 
-TARGET_PYTHON="$PYTHON_SOURCE/python"
-if [[ ! -x "$TARGET_PYTHON" ]]; then
-  echo "Error: target Python executable was not produced at $TARGET_PYTHON." >&2
-  exit 1
-fi
-cp -p "$TARGET_PYTHON" "$STAGE/usr/local/bin/python${PY_MAJOR_MINOR}"
-chmod 0755 "$STAGE/usr/local/bin/python${PY_MAJOR_MINOR}"
+LAUNCHER_OBJECT="$WORKDIR/python-launcher.o"
+"$CC" $CFLAGS \
+  -I"$PYTHON_SOURCE" \
+  -I"$PYTHON_SOURCE/Include" \
+  -c "$PYTHON_SOURCE/Programs/python.c" \
+  -o "$LAUNCHER_OBJECT"
+"$CC" $LDFLAGS \
+  -F"$STAGE/usr/local" \
+  -framework Python \
+  "$LAUNCHER_OBJECT" \
+  -o "$STAGE/usr/local/bin/python${PY_MAJOR_MINOR}"
 
 FRAMEWORK="$STAGE/usr/local/Python.framework"
 if [[ ! -x "$FRAMEWORK/Python" ]] || [[ ! -d "$STAGE/usr/local/lib" ]]; then
