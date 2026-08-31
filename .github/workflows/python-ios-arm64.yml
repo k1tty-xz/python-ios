@@ -1,8 +1,6 @@
 name: Build Python 3.14 for iOS (arm64) and package .deb
 
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -53,7 +51,6 @@ jobs:
       - name: Build and package
         run: |
           set -euo pipefail
-          rm -rf work/deps/libffi-ios
           PYTHON_FOR_BUILD="${{ steps.py.outputs.python-path }}" make all
 
       - name: Upload .deb artifact
