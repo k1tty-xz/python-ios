@@ -59,6 +59,7 @@ export STRIP=arm64-apple-ios-strip
 cat > Modules/Setup.local <<'EOF'
 *disabled*
 nis
+_remote_debugging
 EOF
 
 cat > config.site <<'EOF'
