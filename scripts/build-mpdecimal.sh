@@ -24,6 +24,7 @@ cd "mpdecimal-${MPDECIMAL_VER}"
 ./configure \
   --host="$HOST_TRIPLE" \
   --prefix="$MPDECIMAL_PREFIX" \
+  --disable-cxx \
   --disable-shared \
   --enable-static
 

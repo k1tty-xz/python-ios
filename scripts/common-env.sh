@@ -54,6 +54,7 @@ mkdir -p "$DEPS" "$BUILD" "$STAGE"
 SDK_NAME="iphoneos${IOS_SDK_VERSION}"
 IOS_SDK="$(xcrun --sdk "$SDK_NAME" --show-sdk-path)"
 CC="$(xcrun --sdk "$SDK_NAME" -f clang)"
+CPP="$CC -E"
 CXX="$(xcrun --sdk "$SDK_NAME" -f clang++)"
 AR="$(xcrun --sdk "$SDK_NAME" -f ar)"
 RANLIB="$(xcrun --sdk "$SDK_NAME" -f ranlib)"
@@ -77,7 +78,7 @@ export PY_MAJOR_MINOR PACKAGE_NAME PACKAGE_ID PACKAGE_VERSION
 export PYTHON_SHA256 LIBFFI_SHA256 MPDECIMAL_SHA256 OPENSSL_SHA256
 export JOBS WORKDIR DEPS BUILD STAGE PKGROOT REPO_ROOT IOS_SDK SDK_NAME
 export LIBFFI_PREFIX LIBFFI_CFLAGS LIBFFI_LIBS MPDECIMAL_PREFIX MPDECIMAL_CFLAGS MPDECIMAL_LIBS
-export HOST_TRIPLE BUILD_TRIPLE CC CXX AR RANLIB STRIP NM PKG_CONFIG
+export HOST_TRIPLE BUILD_TRIPLE CC CPP CXX AR RANLIB STRIP NM PKG_CONFIG
 export CFLAGS="-target ${HOST_TRIPLE}${MIN_IOS} -arch arm64 -isysroot ${IOS_SDK} -miphoneos-version-min=${MIN_IOS} -fPIC"
 export LDFLAGS="-target ${HOST_TRIPLE}${MIN_IOS} -arch arm64 -isysroot ${IOS_SDK} -miphoneos-version-min=${MIN_IOS}"
 
