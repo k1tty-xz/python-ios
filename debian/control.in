@@ -1,19 +1,19 @@
-Package: com.k1tty-xz.python3
-Name: Python 3.12 (k1tty)
-Version: ${PY_VER}-1
+Package: @PACKAGE_ID@
+Name: Python @PY_MAJOR_MINOR@ (k1tty-xz)
+Version: @PACKAGE_VERSION@
 Section: Development
 Priority: optional
 Architecture: iphoneos-arm
 Maintainer: k1tty-xz
-Installed-Size: ${INSTALLED_SIZE}
-Depends: firmware (>= 14.5)
+Installed-Size: @INSTALLED_SIZE@
+Depends: firmware (>= @MIN_IOS@)
 Conflicts: python3, org.coolstar.python3, com.bingner.python3
 Replaces: python3, org.coolstar.python3, com.bingner.python3
-Description: The Python 3.12 interpreter for iOS.
- This package provides a full Python 3.12 environment, including:
+Description: The Python @PY_MAJOR_MINOR@ interpreter for iOS.
+ This package provides a full Python @PY_MAJOR_MINOR@ environment, including:
  .
-  * The Python 3.12 interpreter (python3, python3.12)
-  * Standard library with SSL support (OpenSSL 1.1.1)
+  * The Python @PY_MAJOR_MINOR@ interpreter (python3, python@PY_MAJOR_MINOR@)
+  * Standard library with SSL support (OpenSSL 3.6.4)
   * ctypes FFI for loading dynamic libraries
  .
  Note: pip is NOT installed by default. To install it, run:

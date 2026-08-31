@@ -1,0 +1,58 @@
+name: Build Python 3.14 for iOS (arm64) and package .deb
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 45
+    concurrency:
+      group: ios-python3.14-arm64-${{ github.ref }}
+      cancel-in-progress: true
+    env:
+      PY_VER: 3.14.7
+      LIBFFI_VER: 3.8.0
+      OPENSSL_VER: 3.6.4
+      PACKAGE_REVISION: 2
+      MIN_IOS: 14.5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Discover SDK version
+        id: sdk
+        run: |
+          echo "version=$(xcrun --sdk iphoneos --show-sdk-version)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore dependency cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            work/deps/openssl-ios
+            work/deps/libffi-ios
+          key: ios-${{ runner.os }}-sdk-${{ steps.sdk.outputs.version }}-openssl-${{ env.OPENSSL_VER }}-libffi-${{ env.LIBFFI_VER }}-hash-${{ hashFiles('scripts/*.sh', '.github/workflows/python-ios-arm64.yml') }}
+          restore-keys: |
+            ios-${{ runner.os }}-sdk-${{ steps.sdk.outputs.version }}-openssl-${{ env.OPENSSL_VER }}-libffi-${{ env.LIBFFI_VER }}-
+            ios-${{ runner.os }}-sdk-${{ steps.sdk.outputs.version }}-
+
+      - name: Install build tools
+        run: bash scripts/install-build-tools.sh
+
+      - name: Set up host Python
+        id: py
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14.7'
+
+      - name: Build and package
+        run: |
+          set -euxo pipefail
+          PYTHON_FOR_BUILD="${{ steps.py.outputs.python-path }}" make all
+
+      - name: Upload .deb artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: python3.14_${{ env.PY_VER }}-${{ env.PACKAGE_REVISION }}_iphoneos-arm
+          path: work/python3.14_${{ env.PY_VER }}-${{ env.PACKAGE_REVISION }}_iphoneos-arm.deb

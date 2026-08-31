@@ -8,7 +8,7 @@
 #
 SHELL := /bin/bash
 
-.PHONY: all deps openssl libffi python package clean distclean
+.PHONY: all deps openssl libffi python package validate clean distclean
 
 all: deps python package
 
@@ -32,11 +32,16 @@ python:
 package:
 	bash scripts/package-dpkg.sh
 
+# Portable checks that do not require macOS or the iOS SDK.
+validate:
+	@set -eu; for script in scripts/*.sh; do bash -n "$$script"; done
+	@grep -q '@PACKAGE_ID@' debian/control.in
+
 # ---- Housekeeping ----
 
 clean:
-	rm -rf work/stage work/pkgroot || true
+	rm -rf work/stage work/pkgroot
+	rm -f work/*.deb
 
 distclean:
-	rm -rf work || true
-
+	rm -rf work

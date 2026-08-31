@@ -1,10 +1,10 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: Python 3.12 for iOS
+Upstream-Name: Python 3.14 for iOS
 Upstream-Contact: k1tty-xz
 Source: https://github.com/k1tty-xz/python3.12-ios-arm64
 
 Files: *
-Copyright: 2025 k1tty-xz
+Copyright: 2025-2026 k1tty-xz
 License: MIT
  Permission is hereby granted, free of charge, to any person obtaining a copy
  of this software and associated documentation files (the "Software"), to deal
@@ -24,28 +24,17 @@ License: MIT
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  SOFTWARE.
 
-Files: vendor/gnu-config/*
-Copyright: 1992-2024 Free Software Foundation, Inc.
-License: GPL-3+
- This program is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published by
- the Free Software Foundation; either version 3, or (at your option)
- any later version.
- .
- On Debian systems, the complete text of the GNU General Public License
- version 3 can be found in /usr/share/common-licenses/GPL-3.
-
 Comment: This package bundles the following third-party software
 
-Files: bundled: Python 3.12
-Copyright: 2001-2024 Python Software Foundation
+Files: bundled: Python 3.14
+Copyright: 2001-2026 Python Software Foundation
 License: PSF-2.0
  Python is licensed under the Python Software Foundation License Version 2.
  .
  Full license text: https://docs.python.org/3/license.html
 
-Files: bundled: OpenSSL 1.1.1
-Copyright: 1998-2024 The OpenSSL Project
+Files: bundled: OpenSSL 3.6
+Copyright: 1998-2026 The OpenSSL Project
 License: Apache-2.0
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.

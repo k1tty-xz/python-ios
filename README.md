@@ -1,70 +1,87 @@
-# Python 3.12 for iOS
+# Python for jailbroken iOS (arm64)
 
-[![Build Status](https://github.com/k1tty-xz/python3.12-ios-arm64/actions/workflows/python3.12-ios-arm64.yml/badge.svg)](https://github.com/k1tty-xz/python3.12-ios-arm64/actions)
-[![License](https://img.shields.io/github/license/k1tty-xz/python3.12-ios-arm64)](LICENSE)
-[![iOS](https://img.shields.io/badge/iOS-14.5%2B-black?logo=apple)](https://apple.com)
+This project builds a usable standalone CPython runtime for jailbroken iOS
+devices and packages it as an installable Debian package. It targets iOS
+14.5+ and provides:
 
-CPython 3.12 built for **iOS arm64** and packaged as a Debian package for jailbroken devices.
+- `python3` and `python3.14` under `/usr/local/bin`;
+- the Python standard library;
+- TLS through OpenSSL 3.6.4;
+- `ctypes` through libffi; and
+- jailbreak-compatible signing and entitlements.
 
-## Build
+This is a standalone command-line runtime for jailbroken devices. It is not an
+App Store embedding framework or an iOS XCFramework.
 
-The build requires macOS with Xcode and Homebrew.
+## Build requirements
 
-Install the required tools:
+Build on macOS with a full Xcode installation, not only the Command Line Tools.
+Homebrew is used only for the small set of non-Apple packaging tools:
 
 ```sh
 bash scripts/install-build-tools.sh
 ```
 
-Set the build variables:
+The default v2 toolchain is:
 
-```sh
-export PY_VER=3.12.5
-export LIBFFI_VER=3.4.4
-export MIN_IOS=14.5
-export PYTHON_FOR_BUILD="$(command -v python3.12)"
-```
+| Component | Version |
+| --- | --- |
+| CPython | 3.14.7 |
+| OpenSSL | 3.6.4 |
+| libffi | 3.8.0 |
+| Minimum iOS | 14.5 |
 
-Build everything:
-
-```sh
-make all
-```
-
-The package is written to `work/` as:
-
-```text
-python3.12_<version>-1_iphoneos-arm.deb
-```
-
-Individual stages are also available:
-
-```sh
-make deps
-make python
-make package
-```
+All source archives are SHA-256 verified before extraction. To intentionally
+build another release, override both its version and matching checksum.
 
 ## Build
 
-The project:
+The host Python must be the exact same CPython release as the target build:
 
-1. Builds OpenSSL and libffi for iOS arm64.
-2. Cross-compiles CPython using the iOS SDK.
-3. Applies the required iOS cross-compilation configuration.
-4. Strips and signs the resulting Mach-O binaries.
-5. Packages the staged files as an `iphoneos-arm` Debian package.
+```sh
+export PYTHON_FOR_BUILD="$(command -v python3.14)"
+make all
+```
 
-The default deployment target is **iOS 14.5**.
+The package is written to `work/`:
 
-## Package
+```text
+work/python3.14_3.14.7-2_iphoneos-arm.deb
+```
 
-The resulting package installs Python under `/usr/local` and adds `/usr/local/bin` to the user's `PATH`. The package provides `python3` and `python3.12`, with SSL support through OpenSSL and `ctypes` support through libffi.
+Individual stages are available:
 
-## CI
+```sh
+make deps       # OpenSSL and libffi
+make python     # cross-compile and stage CPython
+make package    # create the .deb
+make clean      # remove stage and package-root output
+make distclean  # remove all generated output
+```
 
-A GitHub Actions workflow is provided for building the package on macOS. It uses Python 3.12 for the host build and uploads the generated `.deb` as an artifact.
+The build explicitly propagates the iOS SDK compiler, linker, archiver, and
+strip tools. CPython 3.14's supported Darwin cross-build is used for this
+standalone jailbreak layout; no generated source patch or network-fetched GNU
+config files are required.
+
+## GitHub Actions
+
+The manually triggered workflow builds on macOS, caches only verified native
+dependencies, and uploads the resulting `.deb` artifact.
+
+## Security and platform notes
+
+The package is intended for jailbroken devices. Its binaries are signed with
+the entitlements required by this deployment model, including disabled library
+validation and no-container execution. Do not use these entitlements for a
+normal sandboxed or App Store application.
+
+Python on iOS does not provide every process-oriented Unix API. Modules such as
+`os`, `subprocess`, and process signaling have platform-specific limitations;
+this build disables NIS and avoids configure checks that cannot run on iOS.
 
 ## License
 
-The build scripts and packaging are licensed under the MIT License. Python, OpenSSL, libffi, and the bundled GNU config files retain their respective licenses. See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+The build scripts and packaging are MIT-licensed. Python, OpenSSL, libffi, and
+the other included materials retain their own licenses; see [NOTICE](NOTICE)
+and [debian/copyright](debian/copyright).

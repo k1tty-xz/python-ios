@@ -4,12 +4,12 @@ This project (build scripts and packaging) is licensed under the MIT License. Se
 
 The distributed software includes the following third-party components with their respective licenses:
 
-## Python 3.12
+## Python 3.14
 - **License**: Python Software Foundation License (PSF License)
 - **Homepage**: https://www.python.org/
 - **License URL**: https://docs.python.org/3/license.html
 
-## OpenSSL 1.1.1
+## OpenSSL 3.6
 - **License**: Apache License 2.0
 - **Homepage**: https://www.openssl.org/
 - **License URL**: https://openssl-library.org/source/license/index.html

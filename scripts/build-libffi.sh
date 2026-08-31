@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # Script: build-libffi.sh
-# Purpose: Build libffi (static library) for iOS arm64.
-# Requires: LIBFFI_VER (set in environment or common-env.sh)
+# Purpose: Build the current libffi release as a static iOS arm64 library.
 # ==============================================================================
 
 set -euxo pipefail
@@ -25,17 +24,9 @@ cd "$DEPS"
 # ------------------------------------------------------------------------------
 # Download Source
 # ------------------------------------------------------------------------------
-# Download the libffi source tarball with retries to handle network flakiness.
-for i in 1 2 3 4 5; do
-  curl --fail --location --show-error -LO \
-    "https://github.com/libffi/libffi/releases/download/v${LIBFFI_VER}/libffi-${LIBFFI_VER}.tar.gz" && break || {
-    echo "Error: Download failed (attempt $i). Retrying in 3s..." >&2
-    sleep 3
-  }
-done
-
-# Verify the download was successful
-[ -f "libffi-${LIBFFI_VER}.tar.gz" ] || { echo "Error: libffi tarball missing." >&2; exit 1; }
+LIBFFI_TAR="libffi-${LIBFFI_VER}.tar.gz"
+LIBFFI_URL="https://github.com/libffi/libffi/releases/download/v${LIBFFI_VER}/${LIBFFI_TAR}"
+fetch_verified "$LIBFFI_URL" "$DEPS/$LIBFFI_TAR" "$LIBFFI_SHA256"
 
 # Extract source
 tar xf "libffi-${LIBFFI_VER}.tar.gz"
@@ -45,7 +36,7 @@ cd "libffi-${LIBFFI_VER}"
 # Configure and Build
 # ------------------------------------------------------------------------------
 # Configure for iOS arm64 cross-compilation.
-# CFLAGS/LDFLAGS/CC are picked up from the environment (exported by common-env.sh).
+# CFLAGS/LDFLAGS/CC/AR/RANLIB are explicitly exported by common-env.sh.
 ./configure \
   --host="${HOST_TRIPLE}" \
   --prefix=/usr/local \
@@ -63,4 +54,4 @@ make install DESTDIR="$DEPS/libffi-ios"
 # ------------------------------------------------------------------------------
 # Remove source directory and tarball to free up disk space.
 cd "$DEPS"
-rm -rf "libffi-${LIBFFI_VER}" "libffi-${LIBFFI_VER}.tar.gz"
+rm -rf "libffi-${LIBFFI_VER}" "$LIBFFI_TAR"
