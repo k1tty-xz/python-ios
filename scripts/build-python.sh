@@ -51,10 +51,10 @@ export AR=arm64-apple-ios-ar
 export RANLIB=ranlib
 export STRIP=arm64-apple-ios-strip
 
-export CPPFLAGS="-I$DEPS/openssl-ios/usr/local/include -I$DEPS/libffi-ios/usr/local/include $MPDECIMAL_CFLAGS"
+export CPPFLAGS="-I$DEPS/openssl-ios/usr/local/include -I$DEPS/libffi-ios/usr/local/include"
 export LDFLAGS="-L$DEPS/openssl-ios/usr/local/lib -L$DEPS/libffi-ios/usr/local/lib $LDFLAGS"
 export LIBS="-lssl -lcrypto"
-export PKG_CONFIG_PATH="$MPDECIMAL_PREFIX/lib/pkgconfig:$LIBFFI_PREFIX/lib/pkgconfig:$DEPS/openssl-ios/usr/local/lib/pkgconfig"
+export PKG_CONFIG_PATH="$LIBFFI_PREFIX/lib/pkgconfig:$DEPS/openssl-ios/usr/local/lib/pkgconfig"
 export PKG_CONFIG_LIBDIR="$PKG_CONFIG_PATH"
 export LD="$CC"
 
@@ -66,13 +66,10 @@ export LD="$CC"
   --with-openssl="$DEPS/openssl-ios/usr/local" \
   --with-openssl-rpath=no \
   --with-libm= \
-  --with-system-libmpdec \
   --with-ensurepip=install \
   --disable-test-modules \
   LIBFFI_CFLAGS="$LIBFFI_CFLAGS" \
   LIBFFI_LIBS="$LIBFFI_LIBS" \
-  LIBMPDEC_CFLAGS="$MPDECIMAL_CFLAGS" \
-  LIBMPDEC_LIBS="$MPDECIMAL_LIBS"
 
 # Cross-compilation cannot execute target extension modules on the build host.
 if grep -q '^checksharedmods:' Makefile; then

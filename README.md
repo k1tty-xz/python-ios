@@ -14,7 +14,6 @@ and adds a small standalone launcher for command-line use.
 - `Python.framework` and the standard library
 - OpenSSL 3.6.4 for TLS
 - libffi 3.8.0 for `ctypes`
-- mpdecimal 4.0.1 for `decimal`
 
 This package is for jailbroken devices. It is not an App Store application,
 XCFramework, or general-purpose iOS app bundle.
@@ -44,13 +43,12 @@ make all
 The package is written to:
 
 ```text
-work/python3.14_3.14.7-9_iphoneos-arm.deb
+work/python3.14_3.14.7-10_iphoneos-arm.deb
 ```
 
 Available targets:
 
 ```sh
-make deps       # Build OpenSSL, libffi, and mpdecimal
 make python     # Build and stage CPython
 make package    # Build the Debian package
 make clean      # Remove staged and packaged output

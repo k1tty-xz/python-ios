@@ -13,9 +13,8 @@ jobs:
     env:
       PY_VER: 3.14.7
       LIBFFI_VER: 3.8.0
-      MPDECIMAL_VER: 4.0.1
       OPENSSL_VER: 3.6.4
-      PACKAGE_REVISION: 7
+      PACKAGE_REVISION: 10
       MIN_IOS: 14.5
 
     steps:
@@ -33,10 +32,9 @@ jobs:
           path: |
             work/deps/openssl-ios
             work/deps/libffi-ios
-            work/deps/mpdecimal-ios
-          key: ios-${{ runner.os }}-sdk-${{ steps.sdk.outputs.version }}-openssl-${{ env.OPENSSL_VER }}-libffi-${{ env.LIBFFI_VER }}-mpdecimal-${{ env.MPDECIMAL_VER }}-hash-${{ hashFiles('scripts/**', '.github/workflows/python-ios-arm64.yml') }}
+          key: ios-${{ runner.os }}-sdk-${{ steps.sdk.outputs.version }}-openssl-${{ env.OPENSSL_VER }}-libffi-${{ env.LIBFFI_VER }}-hash-${{ hashFiles('scripts/**', '.github/workflows/python-ios-arm64.yml') }}
           restore-keys: |
-            ios-${{ runner.os }}-sdk-${{ steps.sdk.outputs.version }}-openssl-${{ env.OPENSSL_VER }}-libffi-${{ env.LIBFFI_VER }}-mpdecimal-${{ env.MPDECIMAL_VER }}-
+            ios-${{ runner.os }}-sdk-${{ steps.sdk.outputs.version }}-openssl-${{ env.OPENSSL_VER }}-libffi-${{ env.LIBFFI_VER }}-
             ios-${{ runner.os }}-sdk-${{ steps.sdk.outputs.version }}-
 
       - name: Install build tools

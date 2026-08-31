@@ -1,19 +1,16 @@
 SHELL := /bin/bash
 
-.PHONY: all deps openssl libffi mpdecimal python package clean distclean
+.PHONY: all deps openssl libffi python package clean distclean
 
 all: deps python package
 
-deps: openssl libffi mpdecimal
+deps: openssl libffi
 
 openssl:
 	bash scripts/build-openssl.sh
 
 libffi:
 	bash scripts/build-libffi.sh
-
-mpdecimal:
-	bash scripts/build-mpdecimal.sh
 
 python:
 	bash scripts/build-python.sh

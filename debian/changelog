@@ -1,3 +1,10 @@
+python3 (3.14.7-10) stable; urgency=medium
+
+  * Use CPython 3.14's bundled decimal implementation.
+  * Remove the standalone mpdecimal build dependency.
+
+ -- k1tty-xz  Mon, 31 Aug 2026 23:00:00 +0000
+
 python3 (3.14.7-9) stable; urgency=medium
 
   * Remove the unused package icon reference.
@@ -5,6 +12,7 @@ python3 (3.14.7-9) stable; urgency=medium
 
  -- k1tty-xz  Mon, 31 Aug 2026 22:30:00 +0000
 
+python3 (3.14.7-8) stable; urgency=medium
 
   * Fix the generated package description version.
   * Simplify Homebrew tool installation and CI validation.
