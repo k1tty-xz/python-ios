@@ -46,7 +46,7 @@ jobs:
         id: py
         uses: actions/setup-python@v7
         with:
-          python-version: '3.14.7'
+          python-version: ${{ env.PY_VER }}
 
       - name: Build and package
         run: |
