@@ -32,7 +32,7 @@ jobs:
           path: |
             work/deps/openssl-ios
             work/deps/libffi-ios
-          key: ios-${{ runner.os }}-sdk-${{ steps.sdk.outputs.version }}-openssl-${{ env.OPENSSL_VER }}-libffi-${{ env.LIBFFI_VER }}-hash-${{ hashFiles('scripts/*.sh', '.github/workflows/python-ios-arm64.yml') }}
+          key: ios-${{ runner.os }}-sdk-${{ steps.sdk.outputs.version }}-openssl-${{ env.OPENSSL_VER }}-libffi-${{ env.LIBFFI_VER }}-hash-${{ hashFiles('scripts/**', '.github/workflows/python-ios-arm64.yml') }}
           restore-keys: |
             ios-${{ runner.os }}-sdk-${{ steps.sdk.outputs.version }}-openssl-${{ env.OPENSSL_VER }}-libffi-${{ env.LIBFFI_VER }}-
             ios-${{ runner.os }}-sdk-${{ steps.sdk.outputs.version }}-
