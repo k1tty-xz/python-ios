@@ -52,7 +52,6 @@ export RANLIB=ranlib
 export STRIP=arm64-apple-ios-strip
 
 cp "$REPO_ROOT/scripts/python-setup.local" Modules/Setup.local
-export CONFIG_SITE="$REPO_ROOT/scripts/cpython-ios.config.site"
 
 export CPPFLAGS="-I$DEPS/openssl-ios/usr/local/include -I$DEPS/libffi-ios/usr/local/include"
 export LDFLAGS="-L$DEPS/openssl-ios/usr/local/lib -L$DEPS/libffi-ios/usr/local/lib $LDFLAGS"
