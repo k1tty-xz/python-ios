@@ -16,7 +16,7 @@ jobs:
       PY_VER: 3.14.7
       LIBFFI_VER: 3.8.0
       OPENSSL_VER: 3.6.4
-      PACKAGE_REVISION: 14
+      PACKAGE_REVISION: 15
       MIN_IOS: 14.5
 
     steps:

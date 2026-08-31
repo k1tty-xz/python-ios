@@ -37,6 +37,11 @@ fi
 
 cd "$PYTHON_SOURCE"
 
+IOS_PLATFORM_PATCH="$REPO_ROOT/debian/patches/ios-cli-platform-fallback.patch"
+if ! grep -Fq "ios-cli-platform-fallback" "$PYTHON_SOURCE/Lib/_ios_support.py"; then
+  patch -p1 < "$IOS_PLATFORM_PATCH"
+fi
+
 IOS_STUB_BIN="$PYTHON_SOURCE/Apple/iOS/Resources/bin"
 if [[ ! -x "$IOS_STUB_BIN/arm64-apple-ios-clang" ]]; then
   echo "Error: CPython iOS compiler stubs are missing from the source archive." >&2

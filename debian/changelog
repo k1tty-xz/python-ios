@@ -1,3 +1,10 @@
+python3 (3.14.7-15) stable; urgency=medium
+
+  * Make CPython's iOS platform probe safe for command-line processes.
+  * Return the documented fallback when UIKit device values are unavailable.
+
+ -- k1tty-xz  Tue, 01 Sep 2026 01:30:00 +0000
+
 python3 (3.14.7-14) stable; urgency=medium
 
   * Bundle pip from CPython's ensurepip wheel for iOS.

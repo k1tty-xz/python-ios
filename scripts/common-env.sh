@@ -9,7 +9,7 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
   exit 1
 fi
 
-for tool in curl dpkg-deb file ldid make nm pkg-config shasum sysctl tar unzip xcrun; do
+for tool in curl dpkg-deb file ldid make nm patch pkg-config shasum sysctl tar unzip xcrun; do
   if ! command -v "$tool" >/dev/null 2>&1; then
     echo "Error: required command not found: $tool" >&2
     exit 1
@@ -20,7 +20,7 @@ done
 PY_VER="${PY_VER:-3.14.7}"
 LIBFFI_VER="${LIBFFI_VER:-3.8.0}"
 OPENSSL_VER="${OPENSSL_VER:-3.6.4}"
-PACKAGE_REVISION="${PACKAGE_REVISION:-14}"
+PACKAGE_REVISION="${PACKAGE_REVISION:-15}"
 MIN_IOS="${MIN_IOS:-14.5}"
 IOS_SDK_VERSION="${IOS_SDK_VERSION:-}"
 JOBS="${JOBS:-$(sysctl -n hw.ncpu)}"
