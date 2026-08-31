@@ -1,3 +1,10 @@
+python3 (3.14.7-14) stable; urgency=medium
+
+  * Bundle pip from CPython's ensurepip wheel for iOS.
+  * Add pip, pip3, and pip3.14 launchers to the package.
+
+ -- k1tty-xz  Tue, 01 Sep 2026 01:00:00 +0000
+
 python3 (3.14.7-13) stable; urgency=medium
 
   * Add the Python.framework runtime path to the standalone launcher.

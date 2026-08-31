@@ -14,6 +14,7 @@ and adds a small standalone launcher for command-line use.
 - `Python.framework` and the standard library
 - OpenSSL 3.6.4 for TLS
 - libffi 3.8.0 for `ctypes`
+- pip with `pip`, `pip3`, and `pip3.14` launchers
 
 This package is for jailbroken devices. It is not an App Store application,
 XCFramework, or general-purpose iOS app bundle.

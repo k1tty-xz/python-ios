@@ -84,6 +84,29 @@ fi
 make -j"$JOBS"
 make install ENSUREPIP=no DESTDIR="$STAGE"
 
+PYTHON_LIB="$STAGE/usr/local/lib/python${PY_MAJOR_MINOR}"
+PIP_WHEEL="$(find "$PYTHON_LIB/ensurepip/_bundled" -type f -name 'pip-*.whl' -print -quit)"
+if [[ -z "$PIP_WHEEL" ]]; then
+  echo "Error: CPython's bundled pip wheel is missing." >&2
+  exit 1
+fi
+
+PIP_SITE="$PYTHON_LIB/site-packages"
+mkdir -p "$PIP_SITE"
+unzip -q "$PIP_WHEEL" -d "$PIP_SITE"
+
+for pip_command in pip pip3 "pip${PY_MAJOR_MINOR}"; do
+  cat > "$STAGE/usr/local/bin/$pip_command" <<'EOF'
+#!/usr/local/bin/python3
+import sys
+from pip._internal.cli.main import main
+
+if __name__ == "__main__":
+    sys.exit(main())
+EOF
+  chmod 0755 "$STAGE/usr/local/bin/$pip_command"
+done
+
 LAUNCHER_OBJECT="$WORKDIR/python-launcher.o"
 "$CC" $CFLAGS \
   -I"$PYTHON_SOURCE" \
