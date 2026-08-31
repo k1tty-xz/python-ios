@@ -5,6 +5,7 @@ python3 (3.14.7-5) stable; urgency=medium
   * Sign and strip all staged Mach-O files, including framework binaries.
   * Use CPython's native iOS extension linker settings.
   * Simplify build scripts and keep CI logs concise.
+  * Remove unneeded local CPython configure and module overrides.
   * Remove the non-applicable libffi multi-os-directory compiler probe.
   * Update GitHub Actions to current Node 24-compatible releases.
 

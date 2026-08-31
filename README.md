@@ -64,8 +64,7 @@ make distclean  # remove all generated output
 The build explicitly propagates the iOS SDK compiler, linker, archiver, and
 strip tools and invokes CPython with `--enable-framework`,
 `--host=arm64-apple-ios`, and `--build=arm64-apple-darwin`. The build uses
-small, tracked CPython configuration files and does not patch third-party
-source.
+CPython's built-in iOS configuration and does not patch third-party source.
 
 ## GitHub Actions
 

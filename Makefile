@@ -21,8 +21,6 @@ package:
 validate:
 	@set -eu; for script in scripts/*.sh; do bash -n "$$script"; done
 	@grep -q '@PACKAGE_ID@' debian/control.in
-	@test -s scripts/cpython-ios.config.site
-	@test -s scripts/python-setup.local
 
 clean:
 	rm -rf work/stage work/pkgroot
