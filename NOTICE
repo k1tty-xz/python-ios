@@ -19,6 +19,11 @@ The distributed software includes the following third-party components with thei
 - **Homepage**: https://github.com/libffi/libffi
 - **License URL**: https://github.com/libffi/libffi/blob/master/LICENSE
 
+## mpdecimal 4.0.1
+- **License**: BSD 2-Clause License
+- **Homepage**: https://www.bytereef.org/mpdecimal/
+- **License URL**: https://www.bytereef.org/mpdecimal/download.html
+
 ---
 
 For complete license texts of the bundled software, please refer to their respective project repositories and documentation.

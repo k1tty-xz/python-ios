@@ -24,6 +24,7 @@ sed \
   -e "s#@PACKAGE_NAME@#${PACKAGE_NAME}#g" \
   -e "s#@PACKAGE_VERSION@#${PACKAGE_VERSION}#g" \
   -e "s#@PY_MAJOR_MINOR@#${PY_MAJOR_MINOR}#g" \
+  -e "s#@OPENSSL_VER@#${OPENSSL_VER}#g" \
   -e "s#@MIN_IOS@#${MIN_IOS}#g" \
   -e "s#@INSTALLED_SIZE@#${INSTALLED_SIZE}#g" \
   "$CONTROL_TEMPLATE" > "$PKGROOT/DEBIAN/control"

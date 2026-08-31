@@ -8,7 +8,8 @@ targets iOS 14.5+ and provides:
 - the `Python.framework` runtime under `/usr/local`;
 - the Python standard library;
 - TLS through OpenSSL 3.6.4;
-- `ctypes` through libffi; and
+- `ctypes` through libffi;
+- decimal arithmetic through system libmpdec; and
 - jailbreak-compatible signing and entitlements.
 
 The package exposes a standalone command-line runtime while preserving the
@@ -31,6 +32,7 @@ The default v2 toolchain is:
 | CPython | 3.14.7 |
 | OpenSSL | 3.6.4 |
 | libffi | 3.8.0 |
+| mpdecimal | 4.0.1 |
 | Minimum iOS | 14.5 |
 
 All source archives are SHA-256 verified before extraction. To intentionally
@@ -48,13 +50,13 @@ make all
 The package is written to `work/`:
 
 ```text
-work/python3.14_3.14.7-5_iphoneos-arm.deb
+work/python3.14_3.14.7-6_iphoneos-arm.deb
 ```
 
 Individual stages are available:
 
 ```sh
-make deps       # OpenSSL and libffi
+make deps       # OpenSSL, libffi, and mpdecimal
 make python     # cross-compile and stage CPython
 make package    # create the .deb
 make clean      # remove stage and package-root output
@@ -79,8 +81,9 @@ validation and no-container execution. Do not use these entitlements for a
 normal sandboxed or App Store application.
 
 Python on iOS does not provide every process-oriented Unix API. Modules such as
-`os`, `subprocess`, and process signaling have platform-specific limitations;
-this build disables NIS and avoids configure checks that cannot run on iOS.
+`os`, `subprocess`, and process signaling have platform-specific limitations.
+Python 3.14 no longer includes the NIS module, and CPython's built-in iOS
+configuration handles platform probes that cannot run on iOS.
 
 ## License
 
