@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 # shellcheck source=common-env.sh
 source "$SCRIPT_DIR/common-env.sh"
 
-package="$WORKDIR/python$PY_MAJOR_MINOR_${PACKAGE_VERSION}_iphoneos-arm.deb"
+package="$WORKDIR/python${PY_MAJOR_MINOR}_${PACKAGE_VERSION}_iphoneos-arm.deb"
 
 rm -rf "$PKGROOT" "$package"
 mkdir -p "$PKGROOT/DEBIAN"

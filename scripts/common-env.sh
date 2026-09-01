@@ -9,7 +9,7 @@ die() {
 	exit 1
 }
 
-for command in awk curl dpkg-deb file find make perl pkg-config shasum sysctl tar xcrun; do
+for command in awk curl cut dpkg-deb file find make mktemp perl pkg-config shasum sysctl tar xcrun; do
 	command -v "$command" >/dev/null 2>&1 || die "required command not found: $command"
 done
 
