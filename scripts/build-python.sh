@@ -5,7 +5,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 # shellcheck source=common-env.sh
 source "$SCRIPT_DIR/common-env.sh"
 
-
 : "${PYTHON_FOR_BUILD:?PYTHON_FOR_BUILD must point to a host Python 3.14.7 executable}"
 [[ -x "$PYTHON_FOR_BUILD" ]] || die "host Python is not executable: $PYTHON_FOR_BUILD"
 [[ "$($PYTHON_FOR_BUILD -c 'import platform; print(platform.python_version())')" == "$PY_VER" ]] ||
@@ -28,6 +27,11 @@ fi
 [[ -d "$source_dir" ]] || die "CPython source directory was not extracted: $source_dir"
 [[ -x "$wrapper_dir/arm64-apple-ios-clang" ]] ||
 	die "CPython iOS compiler wrapper is missing or not executable: $wrapper_dir/arm64-apple-ios-clang"
+
+if ! pkg_config="$(command -v pkg-config)"; then
+	die "required command not found: pkg-config"
+fi
+export PKG_CONFIG="$pkg_config"
 
 (
 	cd "$BUILD"
