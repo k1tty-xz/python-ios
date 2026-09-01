@@ -67,15 +67,21 @@ fetch_verified() {
 	local destination="$2"
 	local expected_sha256="$3"
 	local temporary_file
+	local actual_sha256
 
 	mkdir -p "$(dirname "$destination")"
 	temporary_file="$(mktemp "${destination}.tmp.XXXXXX")"
 
-	curl --fail --location --show-error --retry 5 --retry-all-errors \
-		--output "$temporary_file" "$url"
+	if ! curl --fail --location --show-error --retry 5 --retry-all-errors \
+		--output "$temporary_file" "$url"; then
+		rm -f "$temporary_file"
+		die "download failed: $url"
+	fi
 
-	[[ "$(shasum -a 256 "$temporary_file" | awk '{print $1}')" == "$expected_sha256" ]] ||
-		die "SHA-256 mismatch for $url"
+	actual_sha256="$(shasum -a 256 "$temporary_file" | awk '{print $1}')"
+	[[ "$actual_sha256" == "$expected_sha256" ]] ||
+		die "SHA-256 mismatch for $url (got $actual_sha256)"
 
-	mv "$temporary_file" "$destination"
+	mv "$temporary_file" "$destination" ||
+		die "could not store downloaded archive: $destination"
 }
