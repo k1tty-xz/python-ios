@@ -64,6 +64,59 @@ cd "$build_dir"
   LIBFFI_CFLAGS="$LIBFFI_CFLAGS" \
   LIBFFI_LIBS="$LIBFFI_LIBS"
 
+"$PYTHON_FOR_BUILD" - "$build_dir/Makefile" <<'PY'
+from pathlib import Path
+import sys
+
+makefile = Path(sys.argv[1])
+text = makefile.read_text(encoding="utf-8")
+
+dylib_rule = (
+    "\t \$(CC) -dynamiclib \$(PY_CORE_LDFLAGS) -undefined dynamic_lookup "
+    "-Wl,-install_name,\$(prefix)/lib/libpython\$(LDVERSION).dylib "
+    "-Wl,-compatibility_version,\$(VERSION) -Wl,-current_version,\$(VERSION) "
+    "-o \$@ \$(LIBRARY_OBJS) \$(DTRACE_OBJS) \$(SHLIBS) \$(LIBC) \$(LIBM); \\\n"
+)
+dylib_replacement = (
+    "\tif test \"\$(MACHDEP)\" = \"ios\"; then \\\n"
+    "\t\t\$(CC) -dynamiclib \$(PY_CORE_LDFLAGS) "
+    "-Wl,-install_name,@rpath/libpython\$(LDVERSION).dylib "
+    "-Wl,-compatibility_version,\$(VERSION) -Wl,-current_version,\$(VERSION) "
+    "-o \$@ \$(LIBRARY_OBJS) \$(DTRACE_OBJS) \$(MODLIBS) \$(SHLIBS) "
+    "\$(LIBC) \$(LIBM); \\\n"
+    "\telse \\\n"
+    "\t\t\$(CC) -dynamiclib \$(PY_CORE_LDFLAGS) -undefined dynamic_lookup "
+    "-Wl,-install_name,\$(prefix)/lib/libpython\$(LDVERSION).dylib "
+    "-Wl,-compatibility_version,\$(VERSION) -Wl,-current_version,\$(VERSION) "
+    "-o \$@ \$(LIBRARY_OBJS) \$(DTRACE_OBJS) \$(SHLIBS) \$(LIBC) \$(LIBM); \\\n"
+    "\tfi\n"
+)
+if text.count(dylib_rule) != 1:
+    raise SystemExit("unexpected libpython dylib rule count")
+text = text.replace(dylib_rule, dylib_replacement, 1)
+
+framework_header = (
+    "# This rule is for iOS, which requires an annoyingly just slightly different\n"
+    "# format for frameworks to macOS. It *doesn't* use a versioned framework, and\n"
+    "# the Info.plist must be in the root of the framework.\n"
+)
+framework_guard = (
+    "ifeq (\$(PYTHONFRAMEWORKDIR),no-framework)\n"
+    ".PHONY: no-framework no-framework/\n"
+    "no-framework no-framework/:\n"
+    "else\n"
+)
+if text.count(framework_header) != 1:
+    raise SystemExit("unexpected iOS framework header count")
+text = text.replace(framework_header, framework_header + framework_guard, 1)
+
+framework_recipe = "\t\$(INSTALL_DATA) \$(RESSRCDIR)/Info.plist \$(PYTHONFRAMEWORKDIR)/Info.plist\n"
+if text.count(framework_recipe) != 1:
+    raise SystemExit("unexpected iOS framework recipe count")
+text = text.replace(framework_recipe, framework_recipe + "endif\n", 1)
+
+makefile.write_text(text, encoding="utf-8")
+PY
 make -j"$JOBS" APP_STORE_COMPLIANCE_PATCH=
 make install DESTDIR="$STAGE" ENSUREPIP=no APP_STORE_COMPLIANCE_PATCH=
 
