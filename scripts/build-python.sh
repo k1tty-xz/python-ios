@@ -20,8 +20,9 @@ fetch_verified "$url" "$archive" "$PYTHON_SHA256"
 mkdir -p "$BUILD" "$STAGE"
 tar -xzf "$archive" -C "$BUILD"
 
+[[ -d "$source_dir" ]] || die "CPython source directory was not extracted: $source_dir"
 [[ -x "$wrapper_dir/arm64-apple-ios-clang" ]] ||
-	die "CPython iOS compiler wrappers are missing"
+	die "CPython iOS compiler wrapper is missing: $wrapper_dir/arm64-apple-ios-clang"
 
 (
 	cd "$BUILD"
@@ -39,7 +40,7 @@ tar -xzf "$archive" -C "$BUILD"
 	export PKG_CONFIG="$pkg_config"
 	export PKG_CONFIG_LIBDIR="$LIBFFI_PREFIX/lib/pkgconfig:$OPENSSL_PREFIX/lib/pkgconfig"
 	export CPPFLAGS="-I$OPENSSL_PREFIX/include -I$LIBFFI_PREFIX/include"
-	export LDFLAGS="-L$OPENSSL_PREFIX/lib -L$LIBFFI_PREFIX/lib"
+	export LDFLAGS="-L$OPENSSL_PREFIX/lib -L$OPENSSL_PREFIX/lib -L$LIBFFI_PREFIX/lib"
 	"$source_dir/configure" \
 		--enable-framework=/usr/local/lib \
 		--with-framework-name=Python \
