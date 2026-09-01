@@ -5,6 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 # shellcheck source=common-env.sh
 source "$SCRIPT_DIR/common-env.sh"
 
+# shellcheck disable=SC2154
 trap 'status=$?; printf "Error: build-python.sh failed at line %s (status %s): %s\n" "$LINENO" "$status" "$BASH_COMMAND" >&2; exit "$status"' ERR
 
 : "${PYTHON_FOR_BUILD:?PYTHON_FOR_BUILD must point to a host Python 3.14.7 executable}"
