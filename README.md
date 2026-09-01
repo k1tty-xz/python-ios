@@ -1,59 +1,64 @@
-# Python 3.14 for jailbroken iOS
+# Python 3.14 for iOS (arm64)
 
-A native arm64 Python command-line runtime for jailbroken iOS 14.5 and later.
+A clean, single-architecture CPython 3.14 build for physical arm64 iOS
+devices, distributed as a Debian package for jailbroken systems.
 
-## Runtime
+## What this is
 
-- CPython 3.14.7
-- OpenSSL 3.5.8 LTS with the system CA store
-- libffi 3.8.0 for `ctypes`
-- pip and the Python standard library
-- `subprocess` through iOS `posix_spawn`
+This project builds an unmodified CPython 3.14.7 iOS framework with:
 
-The package installs `python3`, `python3.14`, `pip`, `pip3`, and `pip3.14` in
-`/usr/local/bin`.
+- the official device ABI: arm64-apple-ios
+- Apple's Xcode toolchain and CPython's iOS compiler wrappers
+- Python.framework plus its separate iOS standard-library files
+- OpenSSL 3.5.8 and libffi 3.8.0 built for the same device target
+- bundled CPython mpdecimal, keeping the runtime self-contained
 
-## Design
+The build follows CPython's official iOS framework model. It does not patch
+CPython's runtime, create a standalone non-framework interpreter, or add
+unsupported process workarounds.
 
-This is a jailbreak-specific downstream CPython target. It uses Apple Clang and
-CPython's current iOS compiler wrappers, but installs a standalone shared
-`libpython3.14.dylib` instead of `Python.framework`.
-
-The executable resolves libpython through `@rpath` from `/usr/local/lib`.
-Extension modules must target the same standalone runtime. Pure-Python wheels
-work normally; binary wheels built for a framework-based iOS runtime are not
-interchangeable.
+The result is intended for jailbroken arm64 devices and for developers who
+understand the iOS framework layout. For an App Store application, embed the
+framework in an Xcode project and sign it as part of that application.
 
 ## Build
 
-Use macOS with the full Xcode installation:
+Requirements:
 
-```sh
-bash scripts/install-build-tools.sh
-export PYTHON_FOR_BUILD="$(command -v python3.14)"
-make all
-```
+- macOS with the full Xcode installation
+- an iOS SDK selected by Xcode
+- host Python 3.14.7
 
-The result is written to:
+Run:
 
-```text
-work/python3.14_3.14.7-17_iphoneos-arm.deb
-```
+    make package
+    make validate
 
-Every source archive is SHA-256 verified. GitHub Actions also checks shell
-scripts, package metadata, architecture, deployment target, Mach-O dependencies,
-rpaths, entitlements, and the absence of framework or build-path leakage.
+The package is written to:
 
-## Scope
+    work/python3.14_3.14.7-1_iphoneos-arm.deb
 
-This package is for jailbroken devices. It is not an App Store framework,
-XCFramework, or application bundle. Native package builds still require an iOS
-toolchain and compatible build backend; pip cannot turn desktop source archives
-into iOS binaries by itself.
+The workflow builds one ABI and architecture per pass. A simulator build or an
+XCFramework requires a separate CPython build for that ABI.
 
-## License
+## iOS constraints
 
-The build and packaging code is [MIT licensed](LICENSE). Bundled components keep
-their upstream licenses; see [debian/copyright](debian/copyright).
+iOS does not support normal process creation or a traditional TTY. CPython
+therefore supports embedding, threads, and network sockets, while subprocess
+creation and the usual interactive terminal workflow are not supported.
 
-[CPython iOS documentation](https://github.com/python/cpython/blob/v3.14.7/Apple/iOS/README.md)
+pip is intentionally not bundled. CPython's official iOS model does not
+support the traditional runtime download, virtual-environment, and source-build
+workflow. Package native extensions before embedding them, and place each iOS
+dynamic module in the framework structure required by Apple and CPython.
+
+## Sources
+
+- CPython iOS build guide:
+  https://github.com/python/cpython/blob/v3.14.7/Apple/iOS/README.md
+- PEP 730, Adding iOS as a supported platform:
+  https://peps.python.org/pep-0730/
+- Python 3.14 configure documentation:
+  https://docs.python.org/3.14/using/configure.html
+- Apple framework bundles:
+  https://developer.apple.com/documentation/xcode/creating-a-multi-platform-binary-framework-bundle

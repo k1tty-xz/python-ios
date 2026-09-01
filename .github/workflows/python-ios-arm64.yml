@@ -1,4 +1,4 @@
-name: Build Python 3.14 for iOS
+name: Build Python 3.14 for iOS (arm64)
 
 on:
   push:
@@ -8,104 +8,52 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: python-ios-${{ github.ref }}
-  cancel-in-progress: true
+env:
+  PY_VER: 3.14.7
+  LIBFFI_VER: 3.8.0
+  OPENSSL_VER: 3.5.8
+  PACKAGE_REVISION: 1
+  MIN_IOS: 14.5
 
 jobs:
   build:
     runs-on: macos-26
-    timeout-minutes: 45
-    env:
-      PY_VER: 3.14.7
-      LIBFFI_VER: 3.8.0
-      OPENSSL_VER: 3.5.8
-      PACKAGE_REVISION: 17
-      MIN_IOS: 14.5
-
     steps:
-      - name: Checkout
+      - name: Check out source
         uses: actions/checkout@v7
 
-      - name: Install build tools
-        run: bash scripts/install-build-tools.sh
+      - name: Set up host Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: 3.14.7
+          check-latest: true
 
-      - name: Check scripts
+      - name: Install build tools
+        run: brew install dpkg pkg-config shellcheck
+
+      - name: Cache dependencies
+        uses: actions/cache@v6
+        with:
+          path: work/deps
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ env.PY_VER }}-${{ env.LIBFFI_VER }}-${{ env.OPENSSL_VER }}-${{ hashFiles('scripts/common-env.sh') }}
+
+      - name: Configure host Python
+        run: echo "PYTHON_FOR_BUILD=$(python -c 'import sys; print(sys.executable)')" >> "$GITHUB_ENV"
+
+      - name: Check shell scripts
         run: |
           bash -n scripts/*.sh
           shellcheck -x -P SCRIPTDIR scripts/*.sh
-          plutil -lint scripts/entitlements.plist
-
-      - name: Set up host Python
-        id: python
-        uses: actions/setup-python@v7
-        with:
-          python-version: ${{ env.PY_VER }}
-
-      - name: Read SDK version
-        id: sdk
-        run: echo "version=$(xcrun --sdk iphoneos --show-sdk-version)" >> "$GITHUB_OUTPUT"
-
-      - name: Restore dependencies
-        uses: actions/cache@v6
-        with:
-          path: |
-            work/deps/openssl-ios
-            work/deps/libffi-ios
-          key: ios-${{ runner.os }}-${{ runner.arch }}-sdk-${{ steps.sdk.outputs.version }}-min-${{ env.MIN_IOS }}-openssl-${{ env.OPENSSL_VER }}-libffi-${{ env.LIBFFI_VER }}-${{ hashFiles('scripts/build-openssl.sh', 'scripts/build-libffi.sh', 'scripts/common-env.sh') }}
 
       - name: Build package
-        env:
-          PYTHON_FOR_BUILD: ${{ steps.python.outputs.python-path }}
-        run: make all
+        run: make package
 
       - name: Validate package
-        run: |
-          set -euo pipefail
-          package="work/python3.14_${PY_VER}-${PACKAGE_REVISION}_iphoneos-arm.deb"
-          root="work/package-verify"
-          rm -rf "$root"
-          mkdir -p "$root"
+        run: make validate
 
-          test -f "$package"
-          test "$(dpkg-deb --field "$package" Architecture)" = iphoneos-arm
-          test "$(dpkg-deb --field "$package" Version)" = "${PY_VER}-${PACKAGE_REVISION}"
-          dpkg-deb --field "$package" Depends | grep -Fq ca-certificates
-          dpkg-deb --extract "$package" "$root"
-
-          python="$root/usr/local/bin/python${PY_VER%.*}"
-          libpython="$root/usr/local/lib/libpython${PY_VER%.*}.dylib"
-          test -x "$python"
-          test -x "$root/usr/local/bin/python3"
-          test -f "$libpython"
-          test -x "$root/usr/local/bin/pip"
-          test -f "$root/usr/local/lib/python${PY_VER%.*}/site-packages/pip/__main__.py"
-          test ! -e "$root/usr/local/Python.framework"
-          ! find "$root" -name '*.a' -print -quit | grep -q .
-
-          test "$(otool -D "$libpython" | tail -n 1)" = "@rpath/libpython${PY_VER%.*}.dylib"
-          otool -L "$python" | grep -Fq "@rpath/libpython${PY_VER%.*}.dylib"
-          otool -l "$python" | grep -A 2 LC_RPATH | grep -Fq '@executable_path/../lib'
-
-          ldid -e "$python" > work/python-entitlements.plist
-          grep -Fq '<key>platform-application</key>' work/python-entitlements.plist
-          ! grep -Eq 'get-task-allow|task_for_pid-allow' work/python-entitlements.plist
-
-          while IFS= read -r -d '' file_path; do
-            description="$(file -b "$file_path")"
-            [[ "$description" == *Mach-O* ]] || continue
-            [[ "$description" == *arm64* ]]
-            ! otool -L "$file_path" | grep -Eq 'Python\.framework|/Applications/Xcode|/work/'
-            if [[ "$file_path" == *.so ]]; then
-              otool -L "$file_path" | grep -Fq "@rpath/libpython${PY_VER%.*}.dylib"
-            fi
-          done < <(find "$root" -type f -print0)
-
-          grep -RFlq "arm64-apple-ios${MIN_IOS}" "$root/usr/local/lib/python${PY_VER%.*}"
-
-      - name: Upload package
+      - name: Upload Debian package
         uses: actions/upload-artifact@v7
         with:
-          name: python3.14_${{ env.PY_VER }}-${{ env.PACKAGE_REVISION }}_iphoneos-arm
-          path: work/python3.14_${{ env.PY_VER }}-${{ env.PACKAGE_REVISION }}_iphoneos-arm.deb
+          name: python3.14-ios-arm64
+          path: work/python3.14_*.deb
           if-no-files-found: error

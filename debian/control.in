@@ -1,19 +1,14 @@
-Package: @PACKAGE_ID@
+Package: python3.14
 Name: Python 3.14
-Version: @PACKAGE_VERSION@
+Version: @VERSION@
 Section: Development
 Priority: optional
 Architecture: iphoneos-arm
 Maintainer: k1tty-xz
-Installed-Size: @INSTALLED_SIZE@
-Depends: firmware (>= @MIN_IOS@), ca-certificates
-Conflicts: python3, org.coolstar.python3, com.bingner.python3
-Replaces: python3, org.coolstar.python3, com.bingner.python3
-Description: Python @PY_MAJOR_MINOR@ for jailbroken iOS
- A native arm64 Python runtime for the iOS command line.
+Depends: ca-certificates
+Description: Python 3.14 for iOS (arm64)
+ A CPython 3.14 framework build for physical arm64 iOS devices.
  .
- Includes the Python standard library, pip, OpenSSL @OPENSSL_VER@ LTS for TLS,
- libffi for ctypes, and subprocess support through posix_spawn.
- .
- Commands: python3, python@PY_MAJOR_MINOR@, pip, pip3, and pip@PY_MAJOR_MINOR@.
- Requires iOS @MIN_IOS@ or later.
+ The package preserves CPython's official iOS framework layout for use on a
+ jailbroken device. Applications distributed through the App Store should
+ embed and sign the framework in Xcode.

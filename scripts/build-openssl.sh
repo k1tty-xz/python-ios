@@ -1,31 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 # shellcheck source=common-env.sh
-source "$(dirname -- "${BASH_SOURCE[0]}")/common-env.sh"
+source "$SCRIPT_DIR/common-env.sh"
 
-version_header="$OPENSSL_PREFIX/include/openssl/opensslv.h"
-if [[ -f "$OPENSSL_PREFIX/lib/libcrypto.a" ]] &&
-   grep -Fq "OPENSSL_VERSION_STR \"$OPENSSL_VER\"" "$version_header"; then
-  echo "Using cached OpenSSL $OPENSSL_VER"
-  exit 0
-fi
-
-rm -rf "$OPENSSL_ROOT" "$BUILD/openssl-$OPENSSL_VER"
+source_dir="$BUILD/openssl-$OPENSSL_VER"
 archive="$DEPS/openssl-$OPENSSL_VER.tar.gz"
-fetch_verified \
-  "https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VER}/openssl-${OPENSSL_VER}.tar.gz" \
-  "$archive" "$OPENSSL_SHA256"
-mkdir -p "$BUILD/openssl-$OPENSSL_VER"
-tar -xf "$archive" -C "$BUILD/openssl-$OPENSSL_VER" --strip-components=1
-cd "$BUILD/openssl-$OPENSSL_VER"
+url="https://www.openssl.org/source/openssl-$OPENSSL_VER.tar.gz"
 
-./Configure \
-  ios64-xcrun \
-  no-shared \
-  no-tests \
-  --prefix=/usr/local \
-  --openssldir=/etc/ssl \
-  "-miphoneos-version-min=$MIN_IOS"
-make -j"$JOBS"
-make install_sw DESTDIR="$OPENSSL_ROOT"
+rm -rf "$OPENSSL_ROOT" "$source_dir"
+fetch_verified "$url" "$archive" "$OPENSSL_SHA256"
+mkdir -p "$BUILD"
+tar -xzf "$archive" -C "$BUILD"
+
+(
+	cd "$source_dir"
+	export CC="$SDK_CC"
+	export CXX="$SDK_CXX"
+	export AR="$SDK_AR"
+	export RANLIB="$SDK_RANLIB"
+	export CFLAGS="$TARGET_CFLAGS"
+	export LDFLAGS="$TARGET_LDFLAGS"
+	./Configure ios64-xcrun no-shared no-tests \
+		--prefix="$OPENSSL_PREFIX" \
+		--openssldir=/etc/ssl \
+		"-miphoneos-version-min=$MIN_IOS"
+	make -j"$JOBS"
+	make install_sw
+)

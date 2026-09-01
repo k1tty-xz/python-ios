@@ -1,11 +1,5 @@
-python3 (3.14.7-17) stable; urgency=medium
+python3.14 (3.14.7-1) unstable; urgency=medium
 
-  * Rebuild the project as a standalone shared CPython runtime.
-  * Replace Python.framework linkage with an rpath-based libpython dylib.
-  * Use an accurate iOS 14.5 arm64 target and wheel platform tag.
-  * Update TLS to OpenSSL 3.5.8 LTS and use the system CA store.
-  * Enable jailbroken-device subprocesses through posix_spawn.
-  * Remove debug entitlements and framework-only build workarounds.
+  * Start a clean, official CPython 3.14 iOS framework build for arm64 devices.
 
- -- k1tty-xz  Tue, 01 Sep 2026 12:00:00 +0000
-
+ -- k1tty-xz <k1tty-xz@users.noreply.github.com>  Tue, 01 Sep 2026 00:00:00 +0000

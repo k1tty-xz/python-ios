@@ -24,12 +24,12 @@ License: MIT
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  SOFTWARE.
 
-Files: bundled: Python 3.14
+Files: bundled: CPython
 Copyright: 2001-2026 Python Software Foundation
 License: PSF-2.0
  Full license text: https://docs.python.org/3/license.html
 
-Files: bundled: OpenSSL 3.5
+Files: bundled: OpenSSL
 Copyright: 1998-2026 The OpenSSL Project
 License: Apache-2.0
  Full license text: https://openssl-library.org/source/license/index.html

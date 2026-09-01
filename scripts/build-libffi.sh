@@ -1,36 +1,33 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 # shellcheck source=common-env.sh
-source "$(dirname -- "${BASH_SOURCE[0]}")/common-env.sh"
+source "$SCRIPT_DIR/common-env.sh"
 
-if [[ -f "$LIBFFI_PREFIX/lib/libffi.a" ]] &&
-   grep -Fqx "Version: $LIBFFI_VER" "$LIBFFI_PREFIX/lib/pkgconfig/libffi.pc"; then
-  echo "Using cached libffi $LIBFFI_VER"
-  exit 0
-fi
-
-rm -rf "$DEPS/libffi-ios" "$BUILD/libffi-$LIBFFI_VER"
+source_dir="$BUILD/libffi-$LIBFFI_VER"
 archive="$DEPS/libffi-$LIBFFI_VER.tar.gz"
-fetch_verified \
-  "https://github.com/libffi/libffi/releases/download/v${LIBFFI_VER}/libffi-${LIBFFI_VER}.tar.gz" \
-  "$archive" "$LIBFFI_SHA256"
-mkdir -p "$BUILD/libffi-$LIBFFI_VER"
-tar -xf "$archive" -C "$BUILD/libffi-$LIBFFI_VER" --strip-components=1
-cd "$BUILD/libffi-$LIBFFI_VER"
+url="https://github.com/libffi/libffi/releases/download/v$LIBFFI_VER/libffi-$LIBFFI_VER.tar.gz"
 
-CC="$SDK_CC" \
-CXX="$SDK_CXX" \
-AR="$SDK_AR" \
-RANLIB="$SDK_RANLIB" \
-CFLAGS="$TARGET_CFLAGS -Wno-deprecated-declarations" \
-LDFLAGS="$TARGET_LDFLAGS" \
-./configure \
-  --host="$LIBFFI_HOST" \
-  --prefix="$LIBFFI_PREFIX" \
-  --disable-shared \
-  --enable-static \
-  --disable-multi-os-directory
+rm -rf "$LIBFFI_PREFIX" "$source_dir"
+fetch_verified "$url" "$archive" "$LIBFFI_SHA256"
+mkdir -p "$BUILD"
+tar -xzf "$archive" -C "$BUILD"
 
-make -j"$JOBS"
-make install
+(
+	cd "$source_dir"
+	export CC="$SDK_CC"
+	export CXX="$SDK_CXX"
+	export AR="$SDK_AR"
+	export RANLIB="$SDK_RANLIB"
+	export CFLAGS="$TARGET_CFLAGS"
+	export LDFLAGS="$TARGET_LDFLAGS"
+	./configure \
+		--host="$HOST_TRIPLE" \
+		--prefix="$LIBFFI_PREFIX" \
+		--disable-shared \
+		--enable-static \
+		--disable-multi-os-directory
+	make -j"$JOBS"
+	make install
+)
