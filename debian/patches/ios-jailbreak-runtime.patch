@@ -72,33 +72,6 @@ diff --git a/configure b/configure
  		fi
  		;;
  	OpenUNIX*|UnixWare*) LINKFORSHARED="-Wl,-Bexport";;
-diff --git a/Makefile.pre.in b/Makefile.pre.in
---- a/Makefile.pre.in
-+++ b/Makefile.pre.in
-@@ -1031,7 +1031,11 @@ libpython3.so:	libpython$(LDVERSION).so
- 	$(BLDSHARED) $(NO_AS_NEEDED) -o $@ -Wl,-h$@ $^
- 
- libpython$(LDVERSION).dylib: $(LIBRARY_OBJS)
--	 $(CC) -dynamiclib $(PY_CORE_LDFLAGS) -undefined dynamic_lookup -Wl,-install_name,$(prefix)/lib/libpython$(LDVERSION).dylib -Wl,-compatibility_version,$(VERSION) -Wl,-current_version,$(VERSION) -o $@ $(LIBRARY_OBJS) $(DTRACE_OBJS) $(SHLIBS) $(LIBC) $(LIBM); \
-+	if test "$(MACHDEP)" = "ios"; then \
-+		$(CC) -dynamiclib $(PY_CORE_LDFLAGS) -Wl,-install_name,@rpath/libpython$(LDVERSION).dylib -Wl,-compatibility_version,$(VERSION) -Wl,-current_version,$(VERSION) -o $@ $(LIBRARY_OBJS) $(DTRACE_OBJS) $(MODLIBS) $(SHLIBS) $(LIBC) $(LIBM); \
-+	else \
-+		$(CC) -dynamiclib $(PY_CORE_LDFLAGS) -undefined dynamic_lookup -Wl,-install_name,$(prefix)/lib/libpython$(LDVERSION).dylib -Wl,-compatibility_version,$(VERSION) -Wl,-current_version,$(VERSION) -o $@ $(LIBRARY_OBJS) $(DTRACE_OBJS) $(SHLIBS) $(LIBC) $(LIBM); \
-+	fi
- 
- 
- libpython$(VERSION).sl: $(LIBRARY_OBJS)
-@@ -1078,3 +1078,7 @@
- # This rule is for iOS, which requires an annoyingly just slightly different
- # format for frameworks to macOS. It *doesn't* use a versioned framework, and
- # the Info.plist must be in the root of the framework.
-+ifeq ($(PYTHONFRAMEWORKDIR),no-framework)
-+.PHONY: no-framework no-framework/
-+no-framework no-framework/:
-+else
-@@ -1091,1 +1095,2 @@
- 	$(INSTALL_DATA) $(RESSRCDIR)/Info.plist $(PYTHONFRAMEWORKDIR)/Info.plist
-+endif
 diff --git a/Lib/subprocess.py b/Lib/subprocess.py
 --- a/Lib/subprocess.py
 +++ b/Lib/subprocess.py
