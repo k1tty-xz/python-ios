@@ -117,6 +117,7 @@ text = text.replace(framework_recipe, framework_recipe + "endif\n", 1)
 
 makefile.write_text(text, encoding="utf-8")
 PY
+make -j"$JOBS" "libpython$PY_MAJOR_MINOR.dylib" APP_STORE_COMPLIANCE_PATCH=
 make -j"$JOBS" APP_STORE_COMPLIANCE_PATCH=
 make install DESTDIR="$STAGE" ENSUREPIP=no APP_STORE_COMPLIANCE_PATCH=
 
