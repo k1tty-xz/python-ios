@@ -18,7 +18,7 @@ host_version="$("$PYTHON_FOR_BUILD" -c 'import platform; print(platform.python_v
 archive="$BUILD/Python-$PY_VER.tgz"
 source_dir="$BUILD/Python-$PY_VER-source"
 build_dir="$BUILD/Python-$PY_VER-build"
-rm -rf "$source_dir" "$build_dir" "$STAGE/usr"
+rm -rf "$source_dir" "$build_dir" "${STAGE:?}/usr"
 fetch_verified "https://www.python.org/ftp/python/${PY_VER}/Python-${PY_VER}.tgz" \
   "$archive" "$PYTHON_SHA256"
 mkdir -p "$source_dir" "$build_dir"

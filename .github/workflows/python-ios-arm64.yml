@@ -33,7 +33,7 @@ jobs:
       - name: Check scripts
         run: |
           bash -n scripts/*.sh
-          shellcheck scripts/*.sh
+          shellcheck -x -P SCRIPTDIR scripts/*.sh
           plutil -lint scripts/entitlements.plist
 
       - name: Set up host Python
