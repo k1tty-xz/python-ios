@@ -23,13 +23,14 @@ CC="$SDK_CC" \
 CXX="$SDK_CXX" \
 AR="$SDK_AR" \
 RANLIB="$SDK_RANLIB" \
-CFLAGS="$TARGET_CFLAGS" \
+CFLAGS="$TARGET_CFLAGS -Wno-deprecated-declarations" \
 LDFLAGS="$TARGET_LDFLAGS" \
 ./configure \
   --host="$LIBFFI_HOST" \
   --prefix="$LIBFFI_PREFIX" \
   --disable-shared \
-  --enable-static
+  --enable-static \
+  --disable-multi-os-directory
 
 make -j"$JOBS"
 make install
