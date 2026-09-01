@@ -1,9 +1,9 @@
-# CPython for jailbroken iOS (arm64)
+# Python 3.14 for jailbroken iOS (arm64)
 
-A native arm64 CPython build for jailbroken iOS devices, packaged as an
+A native arm64 Python 3.14 build for jailbroken iOS devices, packaged as an
 installable Debian package.
 
-The project follows CPython's documented [iOS framework build][cpython-ios]
+The project follows CPython's documented [iOS framework build][python-ios]
 and adds a small standalone launcher for command-line use.
 
 ## Included
@@ -44,7 +44,7 @@ make all
 The package is written to:
 
 ```text
-work/python3.14_3.14.7-15_iphoneos-arm.deb
+work/python3.14_3.14.7-16_iphoneos-arm.deb
 ```
 
 Available targets:
@@ -82,4 +82,4 @@ including parts of `os`, `subprocess`, and process signaling.
 The build scripts and packaging are [MIT licensed](LICENSE). Bundled components
 retain their own licenses; see [debian/copyright](debian/copyright).
 
-[cpython-ios]: https://github.com/python/cpython/blob/v3.14.7/Apple/iOS/README.md
+[python-ios]: https://github.com/python/cpython/blob/v3.14.7/Apple/iOS/README.md

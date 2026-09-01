@@ -9,11 +9,16 @@ Installed-Size: @INSTALLED_SIZE@
 Depends: firmware (>= @MIN_IOS@)
 Conflicts: python3, org.coolstar.python3, com.bingner.python3
 Replaces: python3, org.coolstar.python3, com.bingner.python3
-Description: The Python @PY_MAJOR_MINOR@ interpreter for iOS.
- This package provides a full Python @PY_MAJOR_MINOR@ environment, including:
+Description: Python @PY_MAJOR_MINOR@ runtime for jailbroken iOS
+ A complete Python @PY_MAJOR_MINOR@ runtime for arm64 jailbroken iOS devices.
  .
-  * The Python @PY_MAJOR_MINOR@ interpreter (python3, python@PY_MAJOR_MINOR@)
-  * Standard library with SSL support (OpenSSL @OPENSSL_VER@)
-  * ctypes FFI for loading dynamic libraries
-  * pip with pip, pip3, and pip@PY_MAJOR_MINOR@ launchers
+ Run Python directly from the command line with the standard library,
+ HTTPS/TLS support through OpenSSL, ctypes support through libffi, and pip
+ for installing compatible Python wheels.
  .
+ Installed commands:
+  * python3 and python@PY_MAJOR_MINOR@
+  * pip, pip3, and pip@PY_MAJOR_MINOR@
+ .
+ Requires iOS @MIN_IOS@ or later.
+
