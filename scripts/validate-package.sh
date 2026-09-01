@@ -24,7 +24,7 @@ while IFS= read -r -d '' binary; do
 	description="$(file -b "$binary")"
 	[[ "$description" == *Mach-O* ]] || die "not a Mach-O binary: $binary"
 	[[ "$description" == *arm64* ]] || die "not an arm64 binary: $binary"
-done < <(find "$STAGE/usr/local" -type f \( -perm -111 -o -name '*.dylib' -o -name '*.so' \) -print0)
+done < <(find "$STAGE/usr/local/lib" -type f \( -name '*.dylib' -o -name '*.so' -o -path '*/Python.framework/Python' \) -print0)
 
 grep -RFlq "ios-$MIN_IOS-arm64-iphoneos" "$STAGE/usr/local/lib" ||
 	die "CPython iOS platform tag was not found"
