@@ -88,7 +88,7 @@ diff --git a/Makefile.pre.in b/Makefile.pre.in
  
  
  libpython$(VERSION).sl: $(LIBRARY_OBJS)
-@@ -1078,3 +1078,8 @@
+@@ -1078,3 +1078,7 @@
  # This rule is for iOS, which requires an annoyingly just slightly different
  # format for frameworks to macOS. It *doesn't* use a versioned framework, and
  # the Info.plist must be in the root of the framework.
@@ -96,7 +96,7 @@ diff --git a/Makefile.pre.in b/Makefile.pre.in
 +.PHONY: no-framework no-framework/
 +no-framework no-framework/:
 +else
-@@ -1091,1 +1096,2 @@
+@@ -1091,1 +1095,2 @@
  	$(INSTALL_DATA) $(RESSRCDIR)/Info.plist $(PYTHONFRAMEWORKDIR)/Info.plist
 +endif
 diff --git a/Lib/subprocess.py b/Lib/subprocess.py
