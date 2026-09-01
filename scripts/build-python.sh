@@ -51,8 +51,6 @@ printf 'Info: official iOS compiler wrappers are present\n'
 	export RANLIB="$SDK_RANLIB"
 	export STRIP="arm64-apple-ios-strip"
 	export LD="$CC"
-	pkg_config="$(command -v pkg-config)"
-	export PKG_CONFIG="$pkg_config"
 	export PKG_CONFIG_LIBDIR="$LIBFFI_PREFIX/lib/pkgconfig:$OPENSSL_PREFIX/lib/pkgconfig"
 	export CPPFLAGS="-I$OPENSSL_PREFIX/include -I$LIBFFI_PREFIX/include"
 	export LDFLAGS="-L$OPENSSL_PREFIX/lib -L$LIBFFI_PREFIX/lib"

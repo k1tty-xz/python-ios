@@ -12,6 +12,7 @@ die() {
 for command in curl cut dpkg-deb file find make mktemp perl pkg-config shasum sysctl tar xcrun; do
 	command -v "$command" >/dev/null 2>&1 || die "required command not found: $command"
 done
+PKG_CONFIG="$(command -v pkg-config)"
 
 [[ "$(uname -s)" == "Darwin" ]] || die "iOS builds require macOS with full Xcode"
 
@@ -60,7 +61,7 @@ export PACKAGE_VERSION PYTHON_SHA256 LIBFFI_SHA256 OPENSSL_SHA256
 export WORKDIR DEPS BUILD STAGE PKGROOT
 export SDK_NAME IOS_SDK IOS_SDK_VERSION TARGET_TRIPLE HOST_TRIPLE BUILD_TRIPLE
 export SDK_CC SDK_CXX SDK_AR SDK_RANLIB SDK_STRIP TARGET_CFLAGS TARGET_LDFLAGS
-export OPENSSL_ROOT OPENSSL_PREFIX LIBFFI_PREFIX LIBFFI_CFLAGS LIBFFI_LIBS
+export OPENSSL_ROOT OPENSSL_PREFIX LIBFFI_PREFIX LIBFFI_CFLAGS LIBFFI_LIBS PKG_CONFIG
 
 fetch_verified() {
 	local url="$1"
