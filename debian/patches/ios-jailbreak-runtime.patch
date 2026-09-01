@@ -88,7 +88,7 @@ diff --git a/Makefile.pre.in b/Makefile.pre.in
  
  
  libpython$(VERSION).sl: $(LIBRARY_OBJS)
-@@ -1067,13 +1067,18 @@
+@@ -1067,14 +1067,19 @@
  # This rule is for iOS, which requires an annoyingly just slightly different
  # format for frameworks to macOS. It *doesn't* use a versioned framework, and
  # the Info.plist must be in the root of the framework.
