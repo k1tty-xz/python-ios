@@ -50,7 +50,6 @@ export PKG_CONFIG="$pkg_config"
 	export LDFLAGS="-L$OPENSSL_PREFIX/lib -L$LIBFFI_PREFIX/lib"
 	"$source_dir/configure" \
 		--enable-framework=/usr/local/lib \
-		--with-framework-name=Python \
 		--host="$HOST_TRIPLE" \
 		--build="$BUILD_TRIPLE" \
 		--with-build-python="$PYTHON_FOR_BUILD" \
