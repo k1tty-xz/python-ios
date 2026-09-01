@@ -70,7 +70,6 @@ fetch_verified() {
 
 	mkdir -p "$(dirname "$destination")"
 	temporary_file="$(mktemp "${destination}.tmp.XXXXXX")"
-	trap 'rm -f "$temporary_file"' RETURN
 
 	curl --fail --location --show-error --retry 5 --retry-all-errors \
 		--output "$temporary_file" "$url"
@@ -79,5 +78,4 @@ fetch_verified() {
 		die "SHA-256 mismatch for $url"
 
 	mv "$temporary_file" "$destination"
-	trap - RETURN
 }
