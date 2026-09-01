@@ -9,7 +9,7 @@ die() {
 	exit 1
 }
 
-for command in awk curl cut dpkg-deb file find make mktemp perl pkg-config shasum sysctl tar xcrun; do
+for command in curl cut dpkg-deb file find make mktemp perl pkg-config shasum sysctl tar xcrun; do
 	command -v "$command" >/dev/null 2>&1 || die "required command not found: $command"
 done
 
@@ -67,6 +67,7 @@ fetch_verified() {
 	local destination="$2"
 	local expected_sha256="$3"
 	local temporary_file
+	local checksum_line
 	local actual_sha256
 
 	mkdir -p "$(dirname "$destination")"
@@ -78,9 +79,16 @@ fetch_verified() {
 		die "download failed: $url"
 	fi
 
-	actual_sha256="$(shasum -a 256 "$temporary_file" | awk '{print $1}')"
-	[[ "$actual_sha256" == "$expected_sha256" ]] ||
+	if ! checksum_line="$(shasum -a 256 "$temporary_file")"; then
+		rm -f "$temporary_file"
+		die "could not hash downloaded archive: $url"
+	fi
+	actual_sha256="${checksum_line%% *}"
+
+	if [[ "$actual_sha256" != "$expected_sha256" ]]; then
+		rm -f "$temporary_file"
 		die "SHA-256 mismatch for $url (got $actual_sha256)"
+	fi
 
 	mv "$temporary_file" "$destination" ||
 		die "could not store downloaded archive: $destination"
