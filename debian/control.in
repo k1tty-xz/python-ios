@@ -6,19 +6,14 @@ Priority: optional
 Architecture: iphoneos-arm
 Maintainer: k1tty-xz
 Installed-Size: @INSTALLED_SIZE@
-Depends: firmware (>= @MIN_IOS@)
+Depends: firmware (>= @MIN_IOS@), ca-certificates
 Conflicts: python3, org.coolstar.python3, com.bingner.python3
 Replaces: python3, org.coolstar.python3, com.bingner.python3
-Description: Python @PY_MAJOR_MINOR@ runtime for jailbroken iOS
- A complete Python @PY_MAJOR_MINOR@ runtime for arm64 jailbroken iOS devices.
+Description: Python @PY_MAJOR_MINOR@ for jailbroken iOS
+ A native arm64 Python runtime for the iOS command line.
  .
- Run Python directly from the command line with the standard library,
- HTTPS/TLS support through OpenSSL, ctypes support through libffi, and pip
- for installing compatible Python wheels.
+ Includes the Python standard library, pip, OpenSSL @OPENSSL_VER@ LTS for TLS,
+ libffi for ctypes, and subprocess support through posix_spawn.
  .
- Installed commands:
-  * python3 and python@PY_MAJOR_MINOR@
-  * pip, pip3, and pip@PY_MAJOR_MINOR@
- .
+ Commands: python3, python@PY_MAJOR_MINOR@, pip, pip3, and pip@PY_MAJOR_MINOR@.
  Requires iOS @MIN_IOS@ or later.
-

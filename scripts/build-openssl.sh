@@ -1,29 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# shellcheck disable=SC1091
-source "$(dirname "$0")/common-env.sh"
+# shellcheck source=common-env.sh
+source "$(dirname -- "${BASH_SOURCE[0]}")/common-env.sh"
 
-if [[ -f "$DEPS/openssl-ios/usr/local/lib/libcrypto.a" &&
-      -f "$DEPS/openssl-ios/usr/local/lib/libssl.a" ]]; then
-  echo "Info: OpenSSL already built. Skipping..."
+version_header="$OPENSSL_PREFIX/include/openssl/opensslv.h"
+if [[ -f "$OPENSSL_PREFIX/lib/libcrypto.a" ]] &&
+   grep -Fq "OPENSSL_VERSION_STR \"$OPENSSL_VER\"" "$version_header"; then
+  echo "Using cached OpenSSL $OPENSSL_VER"
   exit 0
 fi
 
-cd "$DEPS"
+rm -rf "$OPENSSL_ROOT" "$BUILD/openssl-$OPENSSL_VER"
+archive="$DEPS/openssl-$OPENSSL_VER.tar.gz"
+fetch_verified \
+  "https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VER}/openssl-${OPENSSL_VER}.tar.gz" \
+  "$archive" "$OPENSSL_SHA256"
+mkdir -p "$BUILD/openssl-$OPENSSL_VER"
+tar -xf "$archive" -C "$BUILD/openssl-$OPENSSL_VER" --strip-components=1
+cd "$BUILD/openssl-$OPENSSL_VER"
 
-OPENSSL_TAR="openssl-${OPENSSL_VER}.tar.gz"
-OPENSSL_URL="https://github.com/openssl/openssl/releases/download/openssl-${OPENSSL_VER}/${OPENSSL_TAR}"
-
-if [[ ! -d "openssl-${OPENSSL_VER}" ]]; then
-  fetch_verified "$OPENSSL_URL" "$DEPS/$OPENSSL_TAR" "$OPENSSL_SHA256"
-  tar xf "$OPENSSL_TAR"
-fi
-
-cd "openssl-${OPENSSL_VER}"
-
-./Configure ios64-xcrun no-tests no-shared --prefix=/usr/local
-make -j"${JOBS}"
-make install_sw DESTDIR="$DEPS/openssl-ios"
-cd "$DEPS"
-rm -rf "openssl-${OPENSSL_VER}" "${OPENSSL_TAR}"
+./Configure \
+  ios64-xcrun \
+  no-shared \
+  no-tests \
+  --prefix=/usr/local \
+  --openssldir=/etc/ssl \
+  "-miphoneos-version-min=$MIN_IOS"
+make -j"$JOBS"
+make install_sw DESTDIR="$OPENSSL_ROOT"

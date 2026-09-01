@@ -1,85 +1,59 @@
-# Python 3.14 for jailbroken iOS (arm64)
+# Python 3.14 for jailbroken iOS
 
-A native arm64 Python 3.14 build for jailbroken iOS devices, packaged as an
-installable Debian package.
+A native arm64 Python command-line runtime for jailbroken iOS 14.5 and later.
 
-The project follows CPython's documented [iOS framework build][python-ios]
-and adds a small standalone launcher for command-line use.
-
-## Included
+## Runtime
 
 - CPython 3.14.7
-- arm64 device binaries for iOS 14.5 and later
-- `python3` and `python3.14` in `/usr/local/bin`
-- `Python.framework` and the standard library
-- OpenSSL 3.6.4 for TLS
+- OpenSSL 3.5.8 LTS with the system CA store
 - libffi 3.8.0 for `ctypes`
-- pip with `pip`, `pip3`, and `pip3.14` launchers
+- pip and the Python standard library
+- `subprocess` through iOS `posix_spawn`
 
-This package is for jailbroken devices. It is not an App Store application,
-XCFramework, or general-purpose iOS app bundle.
+The package installs `python3`, `python3.14`, `pip`, `pip3`, and `pip3.14` in
+`/usr/local/bin`.
 
-## Requirements
+## Design
 
-Build on macOS with the full Xcode installation. The Command Line Tools alone
-are not sufficient.
+This is a jailbreak-specific downstream CPython target. It uses Apple Clang and
+CPython's current iOS compiler wrappers, but installs a standalone shared
+`libpython3.14.dylib` instead of `Python.framework`.
 
-Install the required packaging tools with Homebrew:
-
-```sh
-bash scripts/install-build-tools.sh
-```
-
-The build verifies every downloaded source archive with SHA-256.
+The executable resolves libpython through `@rpath` from `/usr/local/lib`.
+Extension modules must target the same standalone runtime. Pure-Python wheels
+work normally; binary wheels built for a framework-based iOS runtime are not
+interchangeable.
 
 ## Build
 
-The host Python must match the target CPython version exactly:
+Use macOS with the full Xcode installation:
 
 ```sh
+bash scripts/install-build-tools.sh
 export PYTHON_FOR_BUILD="$(command -v python3.14)"
 make all
 ```
 
-The package is written to:
+The result is written to:
 
 ```text
-work/python3.14_3.14.7-16_iphoneos-arm.deb
+work/python3.14_3.14.7-17_iphoneos-arm.deb
 ```
 
-Available targets:
+Every source archive is SHA-256 verified. GitHub Actions also checks shell
+scripts, package metadata, architecture, deployment target, Mach-O dependencies,
+rpaths, entitlements, and the absence of framework or build-path leakage.
 
-```sh
-make python     # Build and stage CPython
-make package    # Build the Debian package
-make clean      # Remove staged and packaged output
-make distclean  # Remove all generated output
-```
+## Scope
 
-The build uses CPython's iOS configuration with:
-
-- `--host=arm64-apple-ios`
-- `--build=arm64-apple-darwin`
-- `--enable-framework=/usr/local`
-
-## GitHub Actions
-
-The workflow is manually triggered from the repository's Actions tab. It builds
-on macOS, validates the package architecture and launcher, and uploads the
-resulting `.deb` artifact.
-
-## Platform notes
-
-The package uses jailbreak entitlements, including disabled library validation
-and no-container execution. Do not use these entitlements for sandboxed or
-App Store applications.
-
-Some process-oriented Unix APIs have platform-specific limitations on iOS,
-including parts of `os`, `subprocess`, and process signaling.
+This package is for jailbroken devices. It is not an App Store framework,
+XCFramework, or application bundle. Native package builds still require an iOS
+toolchain and compatible build backend; pip cannot turn desktop source archives
+into iOS binaries by itself.
 
 ## License
 
-The build scripts and packaging are [MIT licensed](LICENSE). Bundled components
-retain their own licenses; see [debian/copyright](debian/copyright).
+The build and packaging code is [MIT licensed](LICENSE). Bundled components keep
+their upstream licenses; see [debian/copyright](debian/copyright).
 
-[python-ios]: https://github.com/python/cpython/blob/v3.14.7/Apple/iOS/README.md
+[CPython iOS documentation](https://github.com/python/cpython/blob/v3.14.7/Apple/iOS/README.md)

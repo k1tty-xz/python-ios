@@ -1,0 +1,219 @@
+diff --git a/configure b/configure
+--- a/configure
++++ b/configure
+@@ -4364,8 +4364,5 @@ then :
+ 	case $enableval in
+ 	no)
+-		case $ac_sys_system in
+-			iOS) as_fn_error $? "iOS builds must use --enable-framework" "$LINENO" 5 ;;
+-			*)
+ 				PYTHONFRAMEWORK=
+ 				PYTHONFRAMEWORKDIR=no-framework
+ 				PYTHONFRAMEWORKPREFIX=
+@@ -4391,6 +4387,5 @@ then :
+ 				fi
+ 				enable_framework=
+-		esac
+ 		;;
+ 	*)
+ 		PYTHONFRAMEWORKPREFIX="${enableval}"
+@@ -4486,7 +4481,4 @@ else case e in #(
+   e)
+-	case $ac_sys_system in
+-		iOS) as_fn_error $? "iOS builds must use --enable-framework" "$LINENO" 5 ;;
+-		*)
+ 			PYTHONFRAMEWORK=
+ 			PYTHONFRAMEWORKDIR=no-framework
+ 			PYTHONFRAMEWORKPREFIX=
+@@ -4511,6 +4502,5 @@ else case e in #(
+ 			fi
+ 			enable_framework=
+-	esac
+  ;;
+ esac
+ fi
+@@ -7773,6 +7763,7 @@ if test $enable_shared = "yes"; then
+       ;;
+     iOS)
+       LDLIBRARY='libpython$(LDVERSION).dylib'
++      BLDLIBRARY='-L. -lpython$(LDVERSION)'
+       ;;
+     AIX*)
+       LDLIBRARY='libpython$(LDVERSION).so'
+@@ -13749,9 +13740,15 @@ then
+ 		fi
+ 		;;
+ 	iOS/*)
+-		LDSHARED='$(CC) -dynamiclib -F . -framework $(PYTHONFRAMEWORK)'
+-		LDCXXSHARED='$(CXX) -dynamiclib -F . -framework $(PYTHONFRAMEWORK)'
+-		BLDSHARED="$LDSHARED"
++		if test "$enable_framework"; then
++			LDSHARED='$(CC) -dynamiclib -F . -framework $(PYTHONFRAMEWORK)'
++			LDCXXSHARED='$(CXX) -dynamiclib -F . -framework $(PYTHONFRAMEWORK)'
++			BLDSHARED="$LDSHARED"
++		else
++			LDSHARED='$(CC) -dynamiclib -L$(LIBDIR) -lpython$(LDVERSION)'
++			LDCXXSHARED='$(CXX) -dynamiclib -L$(LIBDIR) -lpython$(LDVERSION)'
++			BLDSHARED='$(CC) -dynamiclib -L. -lpython$(LDVERSION)'
++		fi
+ 		;;
+ 	Emscripten*|WASI*)
+ 		LDSHARED='$(CC) -shared'
+@@ -13936,7 +13933,11 @@ then
+ 			fi
+ 			LINKFORSHARED="$LINKFORSHARED"
+ 		elif test $ac_sys_system = "iOS"; then
+-			LINKFORSHARED="-Wl,-stack_size,$stack_size $LINKFORSHARED "'$(PYTHONFRAMEWORKDIR)/$(PYTHONFRAMEWORK)'
++			if test "$enable_framework"; then
++				LINKFORSHARED="-Wl,-stack_size,$stack_size $LINKFORSHARED "'$(PYTHONFRAMEWORKDIR)/$(PYTHONFRAMEWORK)'
++			else
++				LINKFORSHARED="-Wl,-stack_size,$stack_size -Wl,-rpath,@executable_path/../lib $LINKFORSHARED"
++			fi
+ 		fi
+ 		;;
+ 	OpenUNIX*|UnixWare*) LINKFORSHARED="-Wl,-Bexport";;
+diff --git a/Makefile.pre.in b/Makefile.pre.in
+--- a/Makefile.pre.in
++++ b/Makefile.pre.in
+@@ -1031,7 +1031,11 @@ libpython3.so:	libpython$(LDVERSION).so
+ 	$(BLDSHARED) $(NO_AS_NEEDED) -o $@ -Wl,-h$@ $^
+ 
+ libpython$(LDVERSION).dylib: $(LIBRARY_OBJS)
+-	 $(CC) -dynamiclib $(PY_CORE_LDFLAGS) -undefined dynamic_lookup -Wl,-install_name,$(prefix)/lib/libpython$(LDVERSION).dylib -Wl,-compatibility_version,$(VERSION) -Wl,-current_version,$(VERSION) -o $@ $(LIBRARY_OBJS) $(DTRACE_OBJS) $(SHLIBS) $(LIBC) $(LIBM); \
++	if test "$(MACHDEP)" = "ios"; then \
++		$(CC) -dynamiclib $(PY_CORE_LDFLAGS) -Wl,-install_name,@rpath/libpython$(LDVERSION).dylib -Wl,-compatibility_version,$(VERSION) -Wl,-current_version,$(VERSION) -o $@ $(LIBRARY_OBJS) $(DTRACE_OBJS) $(MODLIBS) $(SHLIBS) $(LIBC) $(LIBM); \
++	else \
++		$(CC) -dynamiclib $(PY_CORE_LDFLAGS) -undefined dynamic_lookup -Wl,-install_name,$(prefix)/lib/libpython$(LDVERSION).dylib -Wl,-compatibility_version,$(VERSION) -Wl,-current_version,$(VERSION) -o $@ $(LIBRARY_OBJS) $(DTRACE_OBJS) $(SHLIBS) $(LIBC) $(LIBM); \
++	fi
+ 
+ 
+ libpython$(VERSION).sl: $(LIBRARY_OBJS)
+diff --git a/Lib/subprocess.py b/Lib/subprocess.py
+--- a/Lib/subprocess.py
++++ b/Lib/subprocess.py
+@@ -75,7 +75,7 @@ else:
+     _mswindows = True
+ 
+ # some platforms do not support subprocesses
+-_can_fork_exec = sys.platform not in {"emscripten", "wasi", "ios", "tvos", "watchos"}
++_can_fork_exec = sys.platform not in {"emscripten", "wasi", "tvos", "watchos"}
+ 
+ if _mswindows:
+     import _winapi
+@@ -719,7 +719,7 @@ def _use_posix_spawn():
+     if ((_env := os.environ.get('_PYTHON_SUBPROCESS_USE_POSIX_SPAWN')) in ('0', '1')):
+         return bool(int(_env))
+ 
+-    if sys.platform in ('darwin', 'sunos5'):
++    if sys.platform in ('darwin', 'ios', 'sunos5'):
+-        # posix_spawn() is a syscall on both macOS and Solaris,
++        # posix_spawn() is a syscall on Darwin platforms and Solaris,
+         # and properly reports errors
+         return True
+diff --git a/Lib/_ios_support.py b/Lib/_ios_support.py
+--- a/Lib/_ios_support.py
++++ b/Lib/_ios_support.py
+@@ -1,71 +1,40 @@
++import os
+ import sys
+ try:
+-    from ctypes import cdll, c_void_p, c_char_p, util
++    from ctypes import CDLL, POINTER, byref, c_char_p, c_int, c_size_t, c_void_p, create_string_buffer
+ except ImportError:
+-    # ctypes is an optional module. If it's not present, we're limited in what
+-    # we can tell about the system, but we don't want to prevent the module
+-    # from working.
+-    print("ctypes isn't available; iOS system calls will not be available", file=sys.stderr)
+-    objc = None
++    _sysctlbyname = None
+ else:
+-    # ctypes is available. Load the ObjC library, and wrap the objc_getClass,
+-    # sel_registerName methods
+-    lib = util.find_library("objc")
+-    if lib is None:
+-        # Failed to load the objc library
+-        raise ImportError("ObjC runtime library couldn't be loaded")
+-
+-    objc = cdll.LoadLibrary(lib)
+-    objc.objc_getClass.restype = c_void_p
+-    objc.objc_getClass.argtypes = [c_char_p]
+-    objc.sel_registerName.restype = c_void_p
+-    objc.sel_registerName.argtypes = [c_char_p]
++    try:
++        _sysctlbyname = CDLL(None).sysctlbyname
++    except AttributeError:
++        _sysctlbyname = None
++    else:
++        _sysctlbyname.restype = c_int
++        _sysctlbyname.argtypes = (
++            c_char_p,
++            c_void_p,
++            POINTER(c_size_t),
++            c_void_p,
++            c_size_t,
++        )
++
++
++def _sysctl_string(name):
++    if _sysctlbyname is None:
++        return None
++    size = c_size_t()
++    if _sysctlbyname(name, None, byref(size), None, 0) != 0 or not size.value:
++        return None
++    value = create_string_buffer(size.value)
++    if _sysctlbyname(name, value, byref(size), None, 0) != 0:
++        return None
++    return value.value.decode("utf-8", "replace")
+ 
+ 
+ def get_platform_ios():
+-    # Determine if this is a simulator using the multiarch value
+     is_simulator = sys.implementation._multiarch.endswith("simulator")
+-
+-    # We can't use ctypes; abort
+-    if not objc:
+-        return None
+-
+-    # Most of the methods return ObjC objects
+-    objc.objc_msgSend.restype = c_void_p
+-    # All the methods used have no arguments.
+-    objc.objc_msgSend.argtypes = [c_void_p, c_void_p]
+-
+-    # Equivalent of:
+-    #   device = [UIDevice currentDevice]
+-    UIDevice = objc.objc_getClass(b"UIDevice")
+-    SEL_currentDevice = objc.sel_registerName(b"currentDevice")
+-    device = objc.objc_msgSend(UIDevice, SEL_currentDevice)
+-
+-    # Equivalent of:
+-    #   device_systemVersion = [device systemVersion]
+-    SEL_systemVersion = objc.sel_registerName(b"systemVersion")
+-    device_systemVersion = objc.objc_msgSend(device, SEL_systemVersion)
+-
+-    # Equivalent of:
+-    #   device_systemName = [device systemName]
+-    SEL_systemName = objc.sel_registerName(b"systemName")
+-    device_systemName = objc.objc_msgSend(device, SEL_systemName)
+-
+-    # Equivalent of:
+-    #   device_model = [device model]
+-    SEL_model = objc.sel_registerName(b"model")
+-    device_model = objc.objc_msgSend(device, SEL_model)
+-
+-    # UTF8String returns a const char*;
+-    SEL_UTF8String = objc.sel_registerName(b"UTF8String")
+-    objc.objc_msgSend.restype = c_char_p
+-
+-    # Equivalent of:
+-    #   system = [device_systemName UTF8String]
+-    #   release = [device_systemVersion UTF8String]
+-    #   model = [device_model UTF8String]
+-    system = objc.objc_msgSend(device_systemName, SEL_UTF8String).decode()
+-    release = objc.objc_msgSend(device_systemVersion, SEL_UTF8String).decode()
+-    model = objc.objc_msgSend(device_model, SEL_UTF8String).decode()
+-
+-    return system, release, model, is_simulator
++    uname = os.uname()
++    release = _sysctl_string(b"kern.osproductversion") or uname.release
++    model = _sysctl_string(b"hw.machine") or uname.machine
++    return "iOS", release, model, is_simulator

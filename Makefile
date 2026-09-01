@@ -19,7 +19,7 @@ package:
 	bash scripts/package-dpkg.sh
 
 clean:
-	rm -rf work/stage work/pkgroot
+	rm -rf work/build work/stage work/pkgroot work/package-verify
 	rm -f work/*.deb
 
 distclean:

@@ -1,53 +1,39 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# shellcheck disable=SC1091
+# shellcheck source=common-env.sh
 source "$(dirname -- "${BASH_SOURCE[0]}")/common-env.sh"
 
-cd "$BUILD"
-
-# Never mix files from a previous Python version into the new package.
-rm -rf "$STAGE/usr"
-
-if [[ -z "${PYTHON_FOR_BUILD:-}" ]]; then
-  echo "Error: PYTHON_FOR_BUILD must point to a host Python ${PY_VER} executable." >&2
+: "${PYTHON_FOR_BUILD:?Set PYTHON_FOR_BUILD to Python $PY_VER on the build host}"
+[[ -x "$PYTHON_FOR_BUILD" ]] || {
+  echo "Error: PYTHON_FOR_BUILD is not executable: $PYTHON_FOR_BUILD" >&2
   exit 1
-fi
-if [[ ! -x "$PYTHON_FOR_BUILD" ]]; then
-  echo "Error: PYTHON_FOR_BUILD='$PYTHON_FOR_BUILD' is not executable." >&2
+}
+host_version="$("$PYTHON_FOR_BUILD" -c 'import platform; print(platform.python_version())')"
+[[ "$host_version" == "$PY_VER" ]] || {
+  echo "Error: host Python $host_version does not match target Python $PY_VER." >&2
   exit 1
-fi
+}
 
-BUILD_PYTHON_VERSION="$("$PYTHON_FOR_BUILD" -c 'import platform; print(platform.python_version())')"
-if [[ "$BUILD_PYTHON_VERSION" != "$PY_VER" ]]; then
-  echo "Error: host Python must match target Python exactly." >&2
-  echo "       expected: $PY_VER" >&2
-  echo "       actual:   $BUILD_PYTHON_VERSION" >&2
+archive="$BUILD/Python-$PY_VER.tgz"
+source_dir="$BUILD/Python-$PY_VER-source"
+build_dir="$BUILD/Python-$PY_VER-build"
+rm -rf "$source_dir" "$build_dir" "$STAGE/usr"
+fetch_verified "https://www.python.org/ftp/python/${PY_VER}/Python-${PY_VER}.tgz" \
+  "$archive" "$PYTHON_SHA256"
+mkdir -p "$source_dir" "$build_dir"
+tar -xf "$archive" -C "$source_dir" --strip-components=1
+patch -d "$source_dir" -p1 < "$REPO_ROOT/debian/patches/ios-jailbreak-runtime.patch"
+
+wrapper_dir="$source_dir/Apple/iOS/Resources/bin"
+[[ -x "$wrapper_dir/arm64-apple-ios-clang" ]] || {
+  echo "Error: CPython's iOS compiler wrappers are missing." >&2
   exit 1
-fi
+}
 
-PYTHON_TAR="Python-${PY_VER}.tgz"
-PYTHON_URL="https://www.python.org/ftp/python/${PY_VER}/${PYTHON_TAR}"
-PYTHON_SOURCE="$BUILD/Python-${PY_VER}"
-
-if [[ ! -d "$PYTHON_SOURCE" ]]; then
-  fetch_verified "$PYTHON_URL" "$BUILD/$PYTHON_TAR" "$PYTHON_SHA256"
-  tar xf "$PYTHON_TAR"
-fi
-
-cd "$PYTHON_SOURCE"
-
-IOS_PLATFORM_PATCH="$REPO_ROOT/debian/patches/ios-cli-platform-fallback.patch"
-if ! grep -Fq "ios-cli-platform-fallback" "$PYTHON_SOURCE/Lib/_ios_support.py"; then
-  patch -p1 < "$IOS_PLATFORM_PATCH"
-fi
-
-IOS_STUB_BIN="$PYTHON_SOURCE/Apple/iOS/Resources/bin"
-if [[ ! -x "$IOS_STUB_BIN/arm64-apple-ios-clang" ]]; then
-  echo "Error: CPython iOS compiler stubs are missing from the source archive." >&2
-  exit 1
-fi
-export PATH="$IOS_STUB_BIN:$PATH"
+pkg_config="$(command -v pkg-config)"
+ldid_bin="$(command -v ldid)"
+export PATH="$wrapper_dir:/usr/bin:/bin:/usr/sbin:/sbin"
 export IPHONEOS_DEPLOYMENT_TARGET="$MIN_IOS"
 export CC=arm64-apple-ios-clang
 export CXX=arm64-apple-ios-clang++
@@ -55,94 +41,67 @@ export CPP=arm64-apple-ios-cpp
 export AR=arm64-apple-ios-ar
 export RANLIB=ranlib
 export STRIP=arm64-apple-ios-strip
-
-export CPPFLAGS="-I$DEPS/openssl-ios/usr/local/include -I$DEPS/libffi-ios/usr/local/include"
-export LDFLAGS="-L$DEPS/openssl-ios/usr/local/lib -L$DEPS/libffi-ios/usr/local/lib $LDFLAGS"
-export LIBS="-lssl -lcrypto"
-export PKG_CONFIG_PATH="$LIBFFI_PREFIX/lib/pkgconfig:$DEPS/openssl-ios/usr/local/lib/pkgconfig"
-export PKG_CONFIG_LIBDIR="$PKG_CONFIG_PATH"
 export LD="$CC"
+export PKG_CONFIG="$pkg_config"
+export PKG_CONFIG_LIBDIR="$LIBFFI_PREFIX/lib/pkgconfig:$OPENSSL_PREFIX/lib/pkgconfig"
+export CPPFLAGS="-I$OPENSSL_PREFIX/include -I$LIBFFI_PREFIX/include"
+export LDFLAGS="-L$OPENSSL_PREFIX/lib -L$LIBFFI_PREFIX/lib"
 
-./configure \
-  --enable-framework=/usr/local \
+cd "$build_dir"
+"$source_dir/configure" \
+  --prefix=/usr/local \
   --host="$HOST_TRIPLE" \
   --build="$BUILD_TRIPLE" \
   --with-build-python="$PYTHON_FOR_BUILD" \
-  --with-openssl="$DEPS/openssl-ios/usr/local" \
+  --enable-shared \
+  --without-static-libpython \
+  --with-openssl="$OPENSSL_PREFIX" \
   --with-openssl-rpath=no \
+  --with-system-libmpdec=no \
   --with-libm= \
   --with-ensurepip=install \
   --disable-test-modules \
   LIBFFI_CFLAGS="$LIBFFI_CFLAGS" \
-  LIBFFI_LIBS="$LIBFFI_LIBS" \
+  LIBFFI_LIBS="$LIBFFI_LIBS"
 
-# Cross-compilation cannot execute target extension modules on the build host.
-if grep -q '^checksharedmods:' Makefile; then
-  awk '
-    /^checksharedmods:/ { print "checksharedmods:\n\t@true"; skip=1; next }
-    skip && (/^[[:space:]]*$/ || /^[[:space:]]/){ next }
-    { skip=0; print }
-  ' Makefile > Makefile.new
-  mv Makefile.new Makefile
-fi
+make -j"$JOBS" APP_STORE_COMPLIANCE_PATCH=
+make install DESTDIR="$STAGE" ENSUREPIP=no APP_STORE_COMPLIANCE_PATCH=
 
-make -j"$JOBS"
-make install ENSUREPIP=no DESTDIR="$STAGE"
-
-PYTHON_LIB="$STAGE/usr/local/lib/python${PY_MAJOR_MINOR}"
-PIP_WHEEL="$(find "$PYTHON_LIB/ensurepip/_bundled" -type f -name 'pip-*.whl' -print -quit)"
-if [[ -z "$PIP_WHEEL" ]]; then
+python_lib="$STAGE/usr/local/lib/python$PY_MAJOR_MINOR"
+pip_wheel="$(find "$python_lib/ensurepip/_bundled" -name 'pip-*.whl' -type f -print -quit)"
+[[ -n "$pip_wheel" ]] || {
   echo "Error: CPython's bundled pip wheel is missing." >&2
   exit 1
-fi
+}
+mkdir -p "$python_lib/site-packages"
+unzip -q "$pip_wheel" -d "$python_lib/site-packages"
 
-PIP_SITE="$PYTHON_LIB/site-packages"
-mkdir -p "$PIP_SITE"
-unzip -q "$PIP_WHEEL" -d "$PIP_SITE"
-
-for pip_command in pip pip3 "pip${PY_MAJOR_MINOR}"; do
-  cat > "$STAGE/usr/local/bin/$pip_command" <<'EOF'
-#!/usr/local/bin/python3
-import sys
-from pip._internal.cli.main import main
-
-if __name__ == "__main__":
-    sys.exit(main())
-EOF
-  chmod 0755 "$STAGE/usr/local/bin/$pip_command"
+for command in pip pip3 "pip$PY_MAJOR_MINOR"; do
+  install -m 0755 /dev/null "$STAGE/usr/local/bin/$command"
+  printf '%s\n' \
+    '#!/usr/local/bin/python3' \
+    'from pip._internal.cli.main import main' \
+    'raise SystemExit(main())' \
+    > "$STAGE/usr/local/bin/$command"
 done
 
-LAUNCHER_OBJECT="$WORKDIR/python-launcher.o"
-"$CC" $CFLAGS \
-  -I"$PYTHON_SOURCE" \
-  -I"$PYTHON_SOURCE/Include" \
-  -c "$PYTHON_SOURCE/Programs/python.c" \
-  -o "$LAUNCHER_OBJECT"
-"$CC" $LDFLAGS \
-  -F"$STAGE/usr/local" \
-  -Wl,-rpath,@executable_path/.. \
-  -framework Python \
-  "$LAUNCHER_OBJECT" \
-  -o "$STAGE/usr/local/bin/python${PY_MAJOR_MINOR}"
-
-FRAMEWORK="$STAGE/usr/local/Python.framework"
-if [[ ! -x "$FRAMEWORK/Python" ]] || [[ ! -d "$STAGE/usr/local/lib" ]]; then
-  echo "Error: CPython iOS framework install is incomplete." >&2
+python_bin="$STAGE/usr/local/bin/python$PY_MAJOR_MINOR"
+libpython="$STAGE/usr/local/lib/libpython$PY_MAJOR_MINOR.dylib"
+[[ -x "$python_bin" && -f "$libpython" ]] || {
+  echo "Error: standalone shared CPython installation is incomplete." >&2
   exit 1
-fi
+}
+[[ ! -e "$STAGE/usr/local/Python.framework" ]] || {
+  echo "Error: framework output is forbidden in the standalone package." >&2
+  exit 1
+}
+ln -sfn "python$PY_MAJOR_MINOR" "$STAGE/usr/local/bin/python3"
 
-ln -sfn "python${PY_MAJOR_MINOR}" "$STAGE/usr/local/bin/python3"
-
-echo "Stripping target Mach-O binaries..."
 while IFS= read -r -d '' file_path; do
-  if file -b "$file_path" | grep -q 'Mach-O'; then
+  if file -b "$file_path" | grep -q Mach-O; then
     "$STRIP" -x "$file_path"
+    "$ldid_bin" -S "$file_path"
   fi
-done < <(find "$STAGE" -type f -print0)
-
-ENTITLEMENTS="$REPO_ROOT/scripts/entitlements.plist"
-while IFS= read -r -d '' file_path; do
-  if file -b "$file_path" | grep -q 'Mach-O'; then
-    ldid -S"$ENTITLEMENTS" "$file_path"
-  fi
-done < <(find "$STAGE" -type f -print0)
+done < <(find "$STAGE" -type f ! -path "$python_bin" -print0)
+"$STRIP" -x "$python_bin"
+"$ldid_bin" -S"$REPO_ROOT/scripts/entitlements.plist" "$python_bin"

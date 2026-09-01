@@ -24,35 +24,17 @@ License: MIT
  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  SOFTWARE.
 
-Comment: This package bundles the following third-party software
-
 Files: bundled: Python 3.14
 Copyright: 2001-2026 Python Software Foundation
 License: PSF-2.0
- Python is licensed under the Python Software Foundation License Version 2.
- .
  Full license text: https://docs.python.org/3/license.html
 
-Files: bundled: OpenSSL 3.6
+Files: bundled: OpenSSL 3.5
 Copyright: 1998-2026 The OpenSSL Project
 License: Apache-2.0
- Licensed under the Apache License, Version 2.0 (the "License");
- you may not use this file except in compliance with the License.
- .
  Full license text: https://openssl-library.org/source/license/index.html
 
 Files: bundled: libffi
-Copyright: 1996-2024 Anthony Green and contributors
+Copyright: 1996-2026 Anthony Green and contributors
 License: MIT
- Permission is hereby granted, free of charge, to any person obtaining
- a copy of this software and associated documentation files (the
- "Software"), to deal in the Software without restriction, including
- without limitation the rights to use, copy, modify, merge, publish,
- distribute, sublicense, and/or sell copies of the Software, and to
- permit persons to whom the Software is furnished to do so, subject to
- the following conditions:
- .
- The above copyright notice and this permission notice shall be
- included in all copies or substantial portions of the Software.
- .
  Full license text: https://github.com/libffi/libffi/blob/master/LICENSE

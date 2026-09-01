@@ -1,87 +1,111 @@
-name: Build Python 3.14 for iOS (arm64) and package .deb
+name: Build Python 3.14 for iOS
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: python-ios-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: macos-26
     timeout-minutes: 45
-    concurrency:
-      group: ios-python3.14-arm64-${{ github.ref }}
-      cancel-in-progress: true
     env:
       PY_VER: 3.14.7
       LIBFFI_VER: 3.8.0
-      OPENSSL_VER: 3.6.4
-      PACKAGE_REVISION: 16
+      OPENSSL_VER: 3.5.8
+      PACKAGE_REVISION: 17
       MIN_IOS: 14.5
 
     steps:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Discover SDK version
-        id: sdk
-        run: |
-          echo "version=$(xcrun --sdk iphoneos --show-sdk-version)" >> "$GITHUB_OUTPUT"
+      - name: Install build tools
+        run: bash scripts/install-build-tools.sh
 
-      - name: Restore dependency cache
+      - name: Check scripts
+        run: |
+          bash -n scripts/*.sh
+          shellcheck scripts/*.sh
+          plutil -lint scripts/entitlements.plist
+
+      - name: Set up host Python
+        id: python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.PY_VER }}
+
+      - name: Read SDK version
+        id: sdk
+        run: echo "version=$(xcrun --sdk iphoneos --show-sdk-version)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore dependencies
         uses: actions/cache@v6
         with:
           path: |
             work/deps/openssl-ios
             work/deps/libffi-ios
-          key: ios-${{ runner.os }}-sdk-${{ steps.sdk.outputs.version }}-openssl-${{ env.OPENSSL_VER }}-libffi-${{ env.LIBFFI_VER }}-hash-${{ hashFiles('scripts/**', '.github/workflows/python-ios-arm64.yml') }}
-          restore-keys: |
-            ios-${{ runner.os }}-sdk-${{ steps.sdk.outputs.version }}-openssl-${{ env.OPENSSL_VER }}-libffi-${{ env.LIBFFI_VER }}-
-            ios-${{ runner.os }}-sdk-${{ steps.sdk.outputs.version }}-
+          key: ios-${{ runner.os }}-${{ runner.arch }}-sdk-${{ steps.sdk.outputs.version }}-min-${{ env.MIN_IOS }}-openssl-${{ env.OPENSSL_VER }}-libffi-${{ env.LIBFFI_VER }}-${{ hashFiles('scripts/build-openssl.sh', 'scripts/build-libffi.sh', 'scripts/common-env.sh') }}
 
-      - name: Install build tools
-        run: bash scripts/install-build-tools.sh
-
-      - name: Set up host Python
-        id: py
-        uses: actions/setup-python@v7
-        with:
-          python-version: ${{ env.PY_VER }}
-
-      - name: Build and package
-        run: |
-          set -euo pipefail
-          PYTHON_FOR_BUILD="${{ steps.py.outputs.python-path }}" make all
+      - name: Build package
+        env:
+          PYTHON_FOR_BUILD: ${{ steps.python.outputs.python-path }}
+        run: make all
 
       - name: Validate package
         run: |
           set -euo pipefail
           package="work/python3.14_${PY_VER}-${PACKAGE_REVISION}_iphoneos-arm.deb"
-          verify_dir="work/package-verify"
+          root="work/package-verify"
+          rm -rf "$root"
+          mkdir -p "$root"
+
           test -f "$package"
-          test "$(dpkg-deb --field "$package" Architecture)" = "iphoneos-arm"
+          test "$(dpkg-deb --field "$package" Architecture)" = iphoneos-arm
           test "$(dpkg-deb --field "$package" Version)" = "${PY_VER}-${PACKAGE_REVISION}"
-          rm -rf "$verify_dir"
-          mkdir -p "$verify_dir"
-          dpkg-deb --extract "$package" "$verify_dir"
-          launcher="$verify_dir/usr/local/bin/python${PY_VER%.*}"
-          test -x "$launcher"
-          test -x "$verify_dir/usr/local/bin/python3"
-          test -f "$verify_dir/usr/local/Python.framework/Python"
-          test -f "$verify_dir/usr/local/lib/python${PY_VER%.*}/site-packages/pip/__main__.py"
-          test -x "$verify_dir/usr/local/bin/pip"
-          test -x "$verify_dir/usr/local/bin/pip3"
-          test -x "$verify_dir/usr/local/bin/pip${PY_VER%.*}"
-          otool -l "$launcher" | grep -A 2 LC_RPATH | grep -Fq "@executable_path/.."
+          dpkg-deb --field "$package" Depends | grep -Fq ca-certificates
+          dpkg-deb --extract "$package" "$root"
+
+          python="$root/usr/local/bin/python${PY_VER%.*}"
+          libpython="$root/usr/local/lib/libpython${PY_VER%.*}.dylib"
+          test -x "$python"
+          test -x "$root/usr/local/bin/python3"
+          test -f "$libpython"
+          test -x "$root/usr/local/bin/pip"
+          test -f "$root/usr/local/lib/python${PY_VER%.*}/site-packages/pip/__main__.py"
+          test ! -e "$root/usr/local/Python.framework"
+          ! find "$root" -name '*.a' -print -quit | grep -q .
+
+          test "$(otool -D "$libpython" | tail -n 1)" = "@rpath/libpython${PY_VER%.*}.dylib"
+          otool -L "$python" | grep -Fq "@rpath/libpython${PY_VER%.*}.dylib"
+          otool -l "$python" | grep -A 2 LC_RPATH | grep -Fq '@executable_path/../lib'
+
+          ldid -e "$python" > work/python-entitlements.plist
+          grep -Fq '<key>platform-application</key>' work/python-entitlements.plist
+          ! grep -Eq 'get-task-allow|task_for_pid-allow' work/python-entitlements.plist
+
           while IFS= read -r -d '' file_path; do
             description="$(file -b "$file_path")"
-            if [[ "$description" == *Mach-O* ]]; then
-              [[ "$description" == *arm64* ]]
+            [[ "$description" == *Mach-O* ]] || continue
+            [[ "$description" == *arm64* ]]
+            ! otool -L "$file_path" | grep -Eq 'Python\.framework|/Applications/Xcode|/work/'
+            if [[ "$file_path" == *.so ]]; then
+              otool -L "$file_path" | grep -Fq "@rpath/libpython${PY_VER%.*}.dylib"
             fi
-          done < <(find "$verify_dir" -type f -print0)
+          done < <(find "$root" -type f -print0)
 
-      - name: Upload .deb artifact
+          grep -RFlq "arm64-apple-ios${MIN_IOS}" "$root/usr/local/lib/python${PY_VER%.*}"
+
+      - name: Upload package
         uses: actions/upload-artifact@v7
         with:
           name: python3.14_${{ env.PY_VER }}-${{ env.PACKAGE_REVISION }}_iphoneos-arm
           path: work/python3.14_${{ env.PY_VER }}-${{ env.PACKAGE_REVISION }}_iphoneos-arm.deb
+          if-no-files-found: error

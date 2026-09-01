@@ -1,99 +1,11 @@
-python3 (3.14.7-16) stable; urgency=medium
+python3 (3.14.7-17) stable; urgency=medium
 
-  * Refresh the package description for clearer package-manager presentation.
+  * Rebuild the project as a standalone shared CPython runtime.
+  * Replace Python.framework linkage with an rpath-based libpython dylib.
+  * Use an accurate iOS 14.5 arm64 target and wheel platform tag.
+  * Update TLS to OpenSSL 3.5.8 LTS and use the system CA store.
+  * Enable jailbroken-device subprocesses through posix_spawn.
+  * Remove debug entitlements and framework-only build workarounds.
 
- -- k1tty-xz  Tue, 01 Sep 2026 02:00:00 +0000
+ -- k1tty-xz  Tue, 01 Sep 2026 12:00:00 +0000
 
-python3 (3.14.7-15) stable; urgency=medium
-
-  * Make CPython's iOS platform probe safe for command-line processes.
-  * Return the documented fallback when UIKit device values are unavailable.
-
- -- k1tty-xz  Tue, 01 Sep 2026 01:30:00 +0000
-
-python3 (3.14.7-14) stable; urgency=medium
-
-  * Bundle pip from CPython's ensurepip wheel for iOS.
-  * Add pip, pip3, and pip3.14 launchers to the package.
-
- -- k1tty-xz  Tue, 01 Sep 2026 01:00:00 +0000
-
-python3 (3.14.7-13) stable; urgency=medium
-
-  * Add the Python.framework runtime path to the standalone launcher.
-  * Validate the launcher rpath in CI before publishing the package.
-
- -- k1tty-xz  Tue, 01 Sep 2026 00:15:00 +0000
-
-python3 (3.14.7-12) stable; urgency=medium
-
-  * Set the package display name to Python 3.14.
-
- -- k1tty-xz  Mon, 31 Aug 2026 23:45:00 +0000
-
-python3 (3.14.7-11) stable; urgency=medium
-
-  * Rename the package display name to CPython for iOS.
-
- -- k1tty-xz  Mon, 31 Aug 2026 23:30:00 +0000
-
-python3 (3.14.7-10) stable; urgency=medium
-
-  * Use CPython 3.14's bundled decimal implementation.
-  * Remove the standalone mpdecimal build dependency.
-
- -- k1tty-xz  Mon, 31 Aug 2026 23:00:00 +0000
-
-python3 (3.14.7-9) stable; urgency=medium
-
-  * Remove the unused package icon reference.
-  * Keep the package revision synchronized with the cleaned repository.
-
- -- k1tty-xz  Mon, 31 Aug 2026 22:30:00 +0000
-
-python3 (3.14.7-8) stable; urgency=medium
-
-  * Fix the generated package description version.
-  * Simplify Homebrew tool installation and CI validation.
-
- -- k1tty-xz  Mon, 31 Aug 2026 22:00:00 +0000
-
-python3 (3.14.7-7) stable; urgency=medium
-
-  * Ship the target arm64 Python executable for standalone device use.
-  * Reject packages with a missing or dangling Python launcher.
-  * Keep package metadata and release filenames synchronized.
-
- -- k1tty-xz  Mon, 31 Aug 2026 21:30:00 +0000
-
-python3 (3.14.7-6) stable; urgency=medium
-
-  * Build decimal with the current upstream mpdecimal library.
-  * Remove the unrelated Homebrew tap workaround from CI.
-  * Keep build metadata and platform documentation synchronized.
-
- -- k1tty-xz  Mon, 31 Aug 2026 15:00:00 +0000
-
-python3 (3.14.7-5) stable; urgency=medium
-
-  * Use CPython's official iOS framework build for the packaged runtime.
-  * Preserve the Python.framework, runtime library, and launcher layout.
-  * Sign and strip all staged Mach-O files, including framework binaries.
-  * Use CPython's native iOS extension linker settings.
-  * Simplify build scripts and keep CI logs concise.
-  * Remove unneeded local CPython configure and module overrides.
-  * Remove the non-applicable libffi multi-os-directory compiler probe.
-  * Update GitHub Actions to current Node 24-compatible releases.
-
- -- k1tty-xz  Mon, 31 Aug 2026 00:00:00 +0000
-
-python3 (3.14.7-2) stable; urgency=medium
-
-  * V2 release for jailbroken iOS arm64.
-  * Upgrade to the current Python 3.14.7 feature release.
-  * Update OpenSSL to 3.6.4 and libffi to 3.8.0.
-  * Verify all downloaded source archives with SHA-256 checksums.
-  * Make toolchain selection, staging, and package creation reproducible.
-  * Remove obsolete configure patches and unused vendored config scripts.
-
- -- k1tty-xz  Mon, 31 Aug 2026 00:00:00 +0000
