@@ -1,5 +1,3 @@
-SHELL := /bin/bash
-
 .PHONY: package validate clean
 
 package:
