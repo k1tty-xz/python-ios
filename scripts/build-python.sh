@@ -52,6 +52,7 @@ tar -xzf "$archive" -C "$BUILD"
 		LIBFFI_LIBS="$LIBFFI_LIBS"
 	make -j"$JOBS"
 	make install DESTDIR="$STAGE"
+	"$PYTHON_FOR_BUILD" -m ensurepip --upgrade --default-pip --root="$STAGE"
 )
 
 interpreter="$STAGE/usr/local/bin/python$PY_MAJOR_MINOR"

@@ -29,7 +29,7 @@ with Apple's iPhoneOS SDK. It does not build or install Python.framework.
 - OpenSSL 3.5.8 for TLS and hashlib
 - libffi 3.8.0 for ctypes
 - bundled mpdecimal for decimal
-- ensurepip
+- pip, bootstrapped during the build with host-side ensurepip
 
 The package is for jailbroken devices. It is not an App Store distribution.
 
@@ -39,7 +39,7 @@ After installing the package:
 
     python3 --version
     python3 -c 'import sys, ssl, ctypes, sqlite3, decimal; print(sys.version); print(sys.platform)'
-    python3 -m ensurepip --upgrade --default-pip
+    python3 -m pip --version
 
 Modules that depend on unavailable iOS facilities are intentionally omitted,
 including curses, multiprocessing, and native subprocess support. The iOS

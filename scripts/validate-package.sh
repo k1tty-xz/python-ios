@@ -15,6 +15,7 @@ stdlib="$STAGE/usr/local/lib/python$PY_MAJOR_MINOR"
 [[ -L "$command" || -x "$command" ]] || die "python3 command not installed"
 [[ -d "$stdlib" ]] || die "standard library not installed"
 [[ -f "$stdlib/ensurepip/__main__.py" ]] || die "ensurepip not installed"
+[[ -x "$STAGE/usr/local/bin/pip$PY_MAJOR_MINOR" ]] || die "pip is not installed"
 [[ ! -d "$STAGE/usr/local/lib/Python.framework" ]] || die "framework must not be packaged"
 
 description="$(file -b "$interpreter")"
