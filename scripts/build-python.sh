@@ -51,10 +51,15 @@ tar -xzf "$archive" -C "$BUILD"
 		LIBFFI_CFLAGS="$LIBFFI_CFLAGS" \
 		LIBFFI_LIBS="$LIBFFI_LIBS"
 	make -j"$JOBS"
-	make install DESTDIR="$STAGE"
-	pip_wheel="$("$PYTHON_FOR_BUILD" -c 'import ensurepip; from pathlib import Path; print(next(Path(ensurepip.__path__[0], "_bundled").glob("pip-*.whl")))')"
+	make install DESTDIR="$STAGE" ENSUREPIP=no
+	pip_wheel="$source_dir"/Lib/ensurepip/_bundled/pip-*.whl
+	[[ -f "$pip_wheel" ]] || die "CPython bundled pip wheel is missing: $pip_wheel"
+	pip_version="${pip_wheel##*/pip-}"
+	pip_version="${pip_version%%-*}"
 	"$PYTHON_FOR_BUILD" -m pip install --no-index --no-deps --ignore-installed \
 		--root="$STAGE" --prefix=/usr/local "$pip_wheel"
+	[[ -f "$STAGE/usr/local/lib/python$PY_MAJOR_MINOR/site-packages/pip-$pip_version.dist-info/METADATA" ]] || \
+		die "bundled pip $pip_version was not staged"
 )
 
 interpreter="$STAGE/usr/local/bin/python$PY_MAJOR_MINOR"
