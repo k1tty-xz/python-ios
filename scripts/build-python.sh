@@ -35,7 +35,8 @@ tar -xzf "$archive" -C "$BUILD"
 	export CFLAGS="$TARGET_CFLAGS"
 	export CPPFLAGS="-I$OPENSSL_PREFIX/include -I$LIBFFI_PREFIX/include"
 	export LDFLAGS="$TARGET_LDFLAGS -L$OPENSSL_PREFIX/lib -L$LIBFFI_PREFIX/lib"
-	export PKG_CONFIG_LIBDIR="$LIBFFI_PREFIX/lib/pkgconfig:$OPENSSL_PREFIX/lib/pkgconfig"
+	export PKG_CONFIG_LIBDIR="$LIBFFI_PREFIX/lib/pkgconfig"
+	export CONFIG_SITE="$SCRIPT_DIR/cpython-ios.config.site"
 	export PYTHON_IOS_EXTERNAL_LIBFFI=yes
 	"$source_dir/configure" \
 		--prefix=/usr/local \

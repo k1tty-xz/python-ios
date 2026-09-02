@@ -1,2 +1,0 @@
-# The SDK output cannot run on the macOS build host.
-ac_cv_prog_cc_cross=yes
