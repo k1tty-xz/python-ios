@@ -13,6 +13,7 @@ import sys
 import tarfile
 import tempfile
 import urllib.request
+import zipfile
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
@@ -227,6 +228,27 @@ def sign(stage: Path) -> None:
         run(["codesign", "--verify", "--strict", binary])
 
 
+def install_pip(stage: Path, prefix: str) -> None:
+    """Install the bundled pip wheel into the target prefix."""
+    lib = next(stage.glob("**/lib/python3.14"))
+    wheel = next((lib / "ensurepip" / "_bundled").glob("pip-*.whl"))
+    site_packages = lib / "site-packages"
+    with zipfile.ZipFile(wheel) as archive:
+        archive.extractall(site_packages)
+    bin_dir = stage / prefix.lstrip("/") / "bin"
+    for name in ("pip", "pip3", "pip3.14"):
+        script = bin_dir / name
+        script.write_text(
+            f"#!{prefix}/bin/python3.14\n"
+            "import sys\n"
+            "from pip._internal.cli.main import main\n"
+            "if __name__ == '__main__':\n"
+            "    sys.exit(main())\n",
+            encoding="utf-8",
+        )
+        script.chmod(0o755)
+
+
 def clean_sysconfig(
     stage: Path, source: Path, deps: Path, host: Path
 ) -> None:
@@ -312,7 +334,7 @@ def build(
         "--disable-framework",
         "--disable-test-modules",
         "--with-system-libmpdec",
-        "--with-ensurepip=upgrade",
+        "--with-ensurepip=no",
         f"--with-openssl={deps}",
         f"LIBLZMA_CFLAGS=-I{deps / 'include'}",
         f"LIBLZMA_LIBS=-L{deps / 'lib'} -llzma",
@@ -342,6 +364,7 @@ def build(
     linked = get(["otool", "-L", binary]).lower()
     if "arm64" not in header or "python.framework" in linked:
         raise RuntimeError("unexpected interpreter linkage")
+    install_pip(stage, prefix)
     clean_sysconfig(stage, build_source, deps, host)
     sign(stage)
     return deb(name, stage, output, epoch, architecture, name.rsplit("-", 1)[-1])
