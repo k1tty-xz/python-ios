@@ -1,0 +1,12 @@
+diff --git a/Python/remote_debug.h b/Python/remote_debug.h
+--- a/Python/remote_debug.h
++++ b/Python/remote_debug.h
+@@ -124,7 +124,7 @@ get_page_size(void) {
+         GetSystemInfo(&si);
+         page_size = si.dwPageSize;
+ #else
+-        page_size = (size_t)getpagesize();
++        page_size = (size_t)sysconf(_SC_PAGESIZE);
+ #endif
+     }
+     return page_size;

@@ -20,6 +20,11 @@ mkdir -p "$BUILD" "$STAGE"
 tar -xzf "$archive" -C "$BUILD"
 
 (
+	cd "$source_dir"
+	patch --batch --forward -p1 < "$SCRIPT_DIR/cpython-ios.patch"
+)
+
+(
 	cd "$BUILD"
 	export CC="$SDK_CC"
 	export CXX="$SDK_CXX"
