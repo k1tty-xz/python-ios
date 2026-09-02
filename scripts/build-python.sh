@@ -38,7 +38,7 @@ tar -xzf "$archive" -C "$BUILD"
 	export PKG_CONFIG_LIBDIR="$LIBFFI_PREFIX/lib/pkgconfig"
 	export CONFIG_SITE="$SCRIPT_DIR/cpython-ios.config.site"
 	export PYTHON_IOS_EXTERNAL_LIBFFI=yes
-	"$source_dir/configure" \
+	MACHDEP=ios "$source_dir/configure" \
 		--prefix=/usr/local \
 		--host="$HOST_TRIPLE" \
 		--build="$BUILD_TRIPLE" \
