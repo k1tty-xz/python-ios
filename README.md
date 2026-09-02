@@ -17,7 +17,7 @@ Build and validate:
 
 The package is written to:
 
-    work/python3.14_3.14.7-2_iphoneos-arm.deb
+    work/python3.14_3.14.7-3_iphoneos-arm.deb
 
 The build uses CPython's normal executable and static-library install, compiled
 with Apple's iPhoneOS SDK. It does not build or install Python.framework.

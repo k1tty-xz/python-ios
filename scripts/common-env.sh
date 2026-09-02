@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 
 die() {
-	printf 'Error: %s\n' "$*" >&2
+	printf 'Error: %s\\n' "$*" >&2
 	exit 1
 }
 
@@ -22,7 +22,7 @@ PY_VER="${PY_VER:-3.14.7}"
 PY_MAJOR_MINOR="${PY_VER%.*}"
 LIBFFI_VER="${LIBFFI_VER:-3.8.0}"
 OPENSSL_VER="${OPENSSL_VER:-3.5.8}"
-PACKAGE_REVISION="${PACKAGE_REVISION:-2}"
+PACKAGE_REVISION="${PACKAGE_REVISION:-3}"
 MIN_IOS="${MIN_IOS:-14.5}"
 JOBS="${JOBS:-$(sysctl -n hw.ncpu)}"
 PACKAGE_VERSION="$PY_VER-$PACKAGE_REVISION"
