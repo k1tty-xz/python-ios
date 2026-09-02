@@ -52,7 +52,9 @@ tar -xzf "$archive" -C "$BUILD"
 		LIBFFI_LIBS="$LIBFFI_LIBS"
 	make -j"$JOBS"
 	make install DESTDIR="$STAGE"
-	"$PYTHON_FOR_BUILD" -m ensurepip --upgrade --default-pip --root="$STAGE"
+	pip_wheel="$("$PYTHON_FOR_BUILD" -c 'import ensurepip; from pathlib import Path; print(next(Path(ensurepip.__path__[0], "_bundled").glob("pip-*.whl")))')"
+	"$PYTHON_FOR_BUILD" -m pip install --no-index --no-deps --ignore-installed \
+		--root="$STAGE" --prefix=/usr/local "$pip_wheel"
 )
 
 interpreter="$STAGE/usr/local/bin/python$PY_MAJOR_MINOR"
