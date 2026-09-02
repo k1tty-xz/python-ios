@@ -43,7 +43,7 @@ IOS_SDK="$(xcrun --sdk "$SDK_NAME" --show-sdk-path)"
 IOS_SDK_VERSION="$(xcrun --sdk "$SDK_NAME" --show-sdk-version)"
 HOST_TRIPLE="$ARCH-apple-darwin"
 BUILD_TRIPLE="$(uname -m)-apple-darwin"
-CONFIG_SITE="$ROOT_DIR/scripts/standalone.config.site"
+export CONFIG_SITE="$ROOT_DIR/scripts/standalone.config.site"
 
 SDK_CC="$(xcrun --sdk "$SDK_NAME" --find clang)"
 SDK_CXX="$(xcrun --sdk "$SDK_NAME" --find clang++)"
