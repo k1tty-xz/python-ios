@@ -41,9 +41,11 @@ After installing the package:
     python3 -c 'import sys, ssl, ctypes, sqlite3, decimal; print(sys.version); print(sys.platform)'
     python3 -m ensurepip --upgrade --default-pip
 
-The iOS kernel still determines which operating-system facilities are available
-at runtime. Test process creation, sockets, TLS, filesystem access, and native
-extension loading on the target device before relying on a package.
+Modules that depend on unavailable iOS facilities are intentionally omitted,
+including curses, multiprocessing, and native subprocess support. The iOS
+kernel still determines which operating-system facilities are available at
+runtime. Test sockets, TLS, filesystem access, and native extension loading on
+the target device before relying on a package.
 
 ## Sources
 

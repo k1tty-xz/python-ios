@@ -11,3 +11,20 @@ ac_cv_func_getgroups=no
 ac_cv_func_getpagesize=no
 ac_cv_func_sendfile=no
 ac_cv_func_system=no
+
+# CPython 3.14.7's official iOS module availability list.
+# Keep this list when using a Darwin-shaped host for a standalone device build.
+py_cv_module__curses=n/a
+py_cv_module__curses_panel=n/a
+py_cv_module__gdbm=n/a
+py_cv_module__multiprocessing=n/a
+py_cv_module__posixshmem=n/a
+py_cv_module__posixsubprocess=n/a
+py_cv_module__scproxy=n/a
+py_cv_module__tkinter=n/a
+py_cv_module_grp=n/a
+py_cv_module_nis=n/a
+py_cv_module_readline=n/a
+py_cv_module_pwd=n/a
+py_cv_module_spwd=n/a
+py_cv_module_syslog=n/a
