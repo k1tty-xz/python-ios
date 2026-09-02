@@ -190,6 +190,22 @@ def member(name: str, data: bytes, epoch: int) -> bytes:
     return header + data + (b"\n" if len(data) % 2 else b"")
 
 
+def sign(stage: Path) -> None:
+    binaries = [next(stage.glob("**/bin/python3.14"))]
+    binaries.extend(path for path in stage.rglob("*.so") if path.is_file())
+    for binary in binaries:
+        run(
+            [
+                "codesign",
+                "--force",
+                "--sign",
+                "-",
+                "--timestamp=none",
+                binary,
+            ]
+        )
+
+
 def deb(
     name: str,
     stage: Path,
@@ -282,6 +298,7 @@ def build(
     linked = get(["otool", "-L", binary]).lower()
     if "arm64" not in header or "python.framework" in linked:
         raise RuntimeError("unexpected interpreter linkage")
+    sign(stage)
     return deb(name, stage, output, epoch, architecture, name.rsplit("-", 1)[-1])
 
 
