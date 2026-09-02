@@ -158,6 +158,8 @@ def main():
     parser.add_argument("--output", type=Path, default=Path("dist"))
     args = parser.parse_args()
     epoch = int(os.environ.get("SOURCE_DATE_EPOCH", "0"))
+    args.work = args.work.resolve()
+    args.output = args.output.resolve()
     source = args.work / "cpython"
     if source.exists():
         shutil.rmtree(source)
