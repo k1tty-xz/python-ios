@@ -1,5 +1,6 @@
-python3.14 (3.14.7-1) unstable; urgency=medium
+python3.14 (3.14.7-2) unstable; urgency=medium
 
-  * Start a clean, official CPython 3.14 iOS framework build for arm64 devices.
+  * Replace the framework package with a standalone command-line build for
+    jailbroken arm64 iOS devices.
 
- -- k1tty-xz <k1tty-xz@users.noreply.github.com>  Tue, 01 Sep 2026 00:00:00 +0000
+ -- k1tty-xz <k1tty-xz@users.noreply.github.com>  Wed, 02 Sep 2026 00:00:00 +0000

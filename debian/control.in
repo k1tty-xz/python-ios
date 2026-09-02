@@ -6,9 +6,8 @@ Priority: optional
 Architecture: iphoneos-arm
 Maintainer: k1tty-xz
 Depends: ca-certificates
-Description: Python 3.14 for iOS (arm64)
- A CPython 3.14 framework build for physical arm64 iOS devices.
+Description: Standalone Python 3.14 runtime for jailbroken iOS
+ A CPython 3.14 command-line runtime for jailbroken arm64 iOS devices.
  .
- The package preserves CPython's official iOS framework layout for use on a
- jailbroken device. Applications distributed through the App Store should
- embed and sign the framework in Xcode.
+ Installs python3, python3.14, the standard library, TLS support, ctypes,
+ sqlite3, decimal, and ensurepip.

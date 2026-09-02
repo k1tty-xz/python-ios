@@ -1,25 +1,6 @@
-# Python 3.14 for iOS (arm64)
+# Python 3.14 for iOS
 
-A clean, single-architecture CPython 3.14 build for physical arm64 iOS
-devices, distributed as a Debian package for jailbroken systems.
-
-## What this is
-
-This project builds an unmodified CPython 3.14.7 iOS framework with:
-
-- the official device ABI: arm64-apple-ios
-- Apple's Xcode toolchain and CPython's iOS compiler wrappers
-- Python.framework plus its separate iOS standard-library files
-- OpenSSL 3.5.8 and libffi 3.8.0 built for the same device target
-- bundled CPython mpdecimal, keeping the runtime self-contained
-
-The build follows CPython's official iOS framework model. It does not patch
-CPython's runtime, create a standalone non-framework interpreter, or add
-unsupported process workarounds.
-
-The result is intended for jailbroken arm64 devices and for developers who
-understand the iOS framework layout. For an App Store application, embed the
-framework in an Xcode project and sign it as part of that application.
+A standalone CPython 3.14 command-line runtime for jailbroken arm64 iOS devices.
 
 ## Build
 
@@ -29,36 +10,46 @@ Requirements:
 - an iOS SDK selected by Xcode
 - host Python 3.14.7
 
-Run:
+Build and validate:
 
     make package
     make validate
 
 The package is written to:
 
-    work/python3.14_3.14.7-1_iphoneos-arm.deb
+    work/python3.14_3.14.7-2_iphoneos-arm.deb
 
-The workflow builds one ABI and architecture per pass. A simulator build or an
-XCFramework requires a separate CPython build for that ABI.
+The build uses CPython's normal executable and static-library install, compiled
+with Apple's iPhoneOS SDK. It does not build or install Python.framework.
 
-## iOS constraints
+## Included
 
-iOS does not support normal process creation or a traditional TTY. CPython
-therefore supports embedding, threads, and network sockets, while subprocess
-creation and the usual interactive terminal workflow are not supported.
+- `python3` and `python3.14`
+- the Python 3.14 standard library
+- OpenSSL 3.5.8 for TLS and hashlib
+- libffi 3.8.0 for ctypes
+- bundled mpdecimal for decimal
+- ensurepip
 
-pip is intentionally not bundled. CPython's official iOS model does not
-support the traditional runtime download, virtual-environment, and source-build
-workflow. Package native extensions before embedding them, and place each iOS
-dynamic module in the framework structure required by Apple and CPython.
+The package is for jailbroken devices. It is not an App Store distribution.
+
+## Device test
+
+After installing the package:
+
+    python3 --version
+    python3 -c 'import sys, ssl, ctypes, sqlite3, decimal; print(sys.version); print(sys.platform)'
+    python3 -m ensurepip --upgrade --default-pip
+
+The iOS kernel still determines which operating-system facilities are available
+at runtime. Test process creation, sockets, TLS, filesystem access, and native
+extension loading on the target device before relying on a package.
 
 ## Sources
 
-- CPython iOS build guide:
-  https://github.com/python/cpython/blob/v3.14.7/Apple/iOS/README.md
-- PEP 730, Adding iOS as a supported platform:
-  https://peps.python.org/pep-0730/
-- Python 3.14 configure documentation:
+- CPython 3.14.7:
+  https://github.com/python/cpython/tree/v3.14.7
+- CPython configure documentation:
   https://docs.python.org/3.14/using/configure.html
-- Apple framework bundles:
-  https://developer.apple.com/documentation/xcode/creating-a-multi-platform-binary-framework-bundle
+- PEP 730:
+  https://peps.python.org/pep-0730/

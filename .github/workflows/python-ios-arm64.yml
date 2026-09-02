@@ -1,4 +1,4 @@
-name: Build Python 3.14 for iOS (arm64)
+name: Build standalone Python 3.14 for iOS
 
 on:
   push:
@@ -12,7 +12,7 @@ env:
   PY_VER: 3.14.7
   LIBFFI_VER: 3.8.0
   OPENSSL_VER: 3.5.8
-  PACKAGE_REVISION: 1
+  PACKAGE_REVISION: 2
   MIN_IOS: 14.5
 
 jobs:
@@ -54,6 +54,6 @@ jobs:
       - name: Upload Debian package
         uses: actions/upload-artifact@v7
         with:
-          name: python3.14-ios-arm64
+          name: python3.14-ios-arm64-standalone
           path: work/python3.14_*.deb
           if-no-files-found: error

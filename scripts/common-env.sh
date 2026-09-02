@@ -10,19 +10,19 @@ die() {
 	exit 1
 }
 
-for command in curl mktemp shasum sysctl tar xcrun; do
+for command in curl file mktemp otool shasum sysctl tar xcrun; do
 	command -v "$command" >/dev/null 2>&1 ||
 		die "required command not found: $command"
 done
 
 [[ "$(uname -s)" == "Darwin" ]] ||
-	die "iOS builds require macOS with full Xcode"
+	die "the build requires macOS with the full Xcode installation"
 
 PY_VER="${PY_VER:-3.14.7}"
 PY_MAJOR_MINOR="${PY_VER%.*}"
 LIBFFI_VER="${LIBFFI_VER:-3.8.0}"
 OPENSSL_VER="${OPENSSL_VER:-3.5.8}"
-PACKAGE_REVISION="${PACKAGE_REVISION:-1}"
+PACKAGE_REVISION="${PACKAGE_REVISION:-2}"
 MIN_IOS="${MIN_IOS:-14.5}"
 JOBS="${JOBS:-$(sysctl -n hw.ncpu)}"
 PACKAGE_VERSION="$PY_VER-$PACKAGE_REVISION"
@@ -37,11 +37,13 @@ BUILD="$WORKDIR/build"
 STAGE="$WORKDIR/stage"
 PKGROOT="$WORKDIR/pkgroot"
 
-SDK_NAME="iphoneos"
+ARCH=arm64
+SDK_NAME=iphoneos
 IOS_SDK="$(xcrun --sdk "$SDK_NAME" --show-sdk-path)"
 IOS_SDK_VERSION="$(xcrun --sdk "$SDK_NAME" --show-sdk-version)"
-HOST_TRIPLE="arm64-apple-ios$MIN_IOS"
+HOST_TRIPLE="$ARCH-apple-darwin"
 BUILD_TRIPLE="$(uname -m)-apple-darwin"
+CONFIG_SITE="$ROOT_DIR/scripts/standalone.config.site"
 
 SDK_CC="$(xcrun --sdk "$SDK_NAME" --find clang)"
 SDK_CXX="$(xcrun --sdk "$SDK_NAME" --find clang++)"
@@ -49,11 +51,11 @@ SDK_AR="$(xcrun --sdk "$SDK_NAME" --find ar)"
 SDK_RANLIB="$(xcrun --sdk "$SDK_NAME" --find ranlib)"
 SDK_STRIP="$(xcrun --sdk "$SDK_NAME" --find strip)"
 
-TARGET_CFLAGS="-target $HOST_TRIPLE -isysroot $IOS_SDK -fPIC"
-TARGET_LDFLAGS="-target $HOST_TRIPLE -isysroot $IOS_SDK"
-OPENSSL_ROOT="$DEPS/openssl-ios"
+TARGET_CFLAGS="-arch $ARCH -isysroot $IOS_SDK -miphoneos-version-min=$MIN_IOS -fPIC"
+TARGET_LDFLAGS="-arch $ARCH -isysroot $IOS_SDK -miphoneos-version-min=$MIN_IOS"
+OPENSSL_ROOT="$DEPS/openssl-iphoneos"
 OPENSSL_PREFIX="$OPENSSL_ROOT/usr/local"
-LIBFFI_PREFIX="$DEPS/libffi-ios/usr/local"
+LIBFFI_PREFIX="$DEPS/libffi-iphoneos/usr/local"
 LIBFFI_CFLAGS="-I$LIBFFI_PREFIX/include"
 LIBFFI_LIBS="-L$LIBFFI_PREFIX/lib -lffi"
 
@@ -65,7 +67,7 @@ fetch_verified() {
 	local actual_sha256
 
 	mkdir -p "$(dirname "$destination")"
-	temporary_file="$(mktemp "${destination}.tmp.XXXXXX")"
+	temporary_file="$(mktemp "$destination.tmp.XXXXXX")"
 
 	if ! curl --fail --location --show-error --retry 5 --retry-all-errors \
 		--output "$temporary_file" "$url"; then

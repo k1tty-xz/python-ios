@@ -23,6 +23,7 @@ tar -xzf "$archive" -C "$BUILD"
 	export CFLAGS="$TARGET_CFLAGS"
 	export LDFLAGS="$TARGET_LDFLAGS"
 	./configure \
+		--build="$BUILD_TRIPLE" \
 		--host="$HOST_TRIPLE" \
 		--prefix="$LIBFFI_PREFIX" \
 		--disable-shared \

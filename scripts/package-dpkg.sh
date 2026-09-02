@@ -10,6 +10,11 @@ package="$WORKDIR/python${PY_MAJOR_MINOR}_${PACKAGE_VERSION}_iphoneos-arm.deb"
 rm -rf "$PKGROOT" "$package"
 mkdir -p "$PKGROOT/DEBIAN"
 cp -a "$STAGE/usr" "$PKGROOT/"
+
+interpreter="$PKGROOT/usr/local/bin/python$PY_MAJOR_MINOR"
+[[ -x "$interpreter" ]] || die "standalone interpreter is missing: $interpreter"
+ln -sfn "python$PY_MAJOR_MINOR" "$PKGROOT/usr/local/bin/python3"
+
 sed "s/@VERSION@/$PACKAGE_VERSION/" \
 	"$ROOT_DIR/debian/control.in" > "$PKGROOT/DEBIAN/control"
 cp "$ROOT_DIR/debian/changelog" "$PKGROOT/DEBIAN/changelog"
