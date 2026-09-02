@@ -7,7 +7,6 @@ import argparse
 import gzip
 import io
 import os
-import re
 import shutil
 import subprocess
 import sys
@@ -50,11 +49,8 @@ def patch(source):
         "\tiOS/*)\n\t\tLDSHARED='$(CC) -bundle -undefined dynamic_lookup'\n\t\tLDCXXSHARED='$(CXX) -bundle -undefined dynamic_lookup'\n\t\tBLDSHARED=\"$LDSHARED\"\n")
     replace(configure, "\tDarwin/*|iOS/*)\n\t\tLINKFORSHARED=\"$extra_undefs -framework CoreFoundation\"\n", "\tDarwin/*)\n\t\tLINKFORSHARED=\"$extra_undefs -framework CoreFoundation\"\n")
     replace(configure, 'if test "$ac_sys_system" = "iOS"; then\n  MODULE_DEPS_SHARED="$MODULE_DEPS_SHARED \\$(PYTHONFRAMEWORKDIR)/\\$(PYTHONFRAMEWORK)"\nfi\n', 'if test "$ac_sys_system" = "iOS" && test "$enable_framework"; then\n  MODULE_DEPS_SHARED="$MODULE_DEPS_SHARED \\$(PYTHONFRAMEWORKDIR)/\\$(PYTHONFRAMEWORK)"\nfi\n')
-    text = configure.read_text(encoding="utf-8")
-    text, count = re.subn(r"(  iOS\) :\n).*?(\n   ;; #\(\n  CYGWIN\*\) :)", r"\1\n\n    py_cv_module__scproxy=n/a\n\2", text, count=1, flags=re.DOTALL)
-    if count != 1:
-        raise RuntimeError("unexpected iOS extension-module block")
-    configure.write_text(text, encoding="utf-8")
+    replace(configure, '      iOS)\n        # Always apply the compliance patch on iOS; we can use the macOS patch\n        APP_STORE_COMPLIANCE_PATCH="Mac/Resources/app-store-compliance.patch"\n        { printf "%s\\n" "$as_me:${as_lineno-$LINENO}: result: applying default app store compliance patch" >&5\nprintf "%s\\n" "applying default app store compliance patch" >&6; }\n        ;;\n', '      iOS)\n        APP_STORE_COMPLIANCE_PATCH=\n        { printf "%s\\n" "$as_me:${as_lineno-$LINENO}: result: not patching for app store compliance" >&5\nprintf "%s\\n" "not patching for app store compliance" >&6; }\n        ;;\n')
+    replace(configure, "  iOS) :\n\n\n\n    py_cv_module__curses=n/a\n    py_cv_module__curses_panel=n/a\n    py_cv_module__gdbm=n/a\n    py_cv_module__multiprocessing=n/a\n    py_cv_module__posixshmem=n/a\n    py_cv_module__posixsubprocess=n/a\n    py_cv_module__scproxy=n/a\n    py_cv_module__tkinter=n/a\n    py_cv_module_grp=n/a\n    py_cv_module_nis=n/a\n    py_cv_module_readline=n/a\n    py_cv_module_pwd=n/a\n    py_cv_module_spwd=n/a\n    py_cv_module_syslog=n/a\n    py_cv_module_=n/a\n\n   ;; #(\n  CYGWIN*) :", "  iOS) :\n\n    py_cv_module__scproxy=n/a\n\n   ;; #(\n  CYGWIN*) :")
     replace(source / "Lib/subprocess.py", 'sys.platform not in {"emscripten", "wasi", "ios", "tvos", "watchos"}', 'sys.platform not in {"emscripten", "wasi", "tvos", "watchos"}')
     replace(source / "Lib/site.py", 'Emscripten, iOS, tvOS, VxWorks, WASI, and watchOS', 'Emscripten, tvOS, VxWorks, WASI, and watchOS')
     replace(source / "Lib/site.py", '{"emscripten", "ios", "tvos", "vxworks", "wasi", "watchos"}', '{"emscripten", "tvos", "vxworks", "wasi", "watchos"}')
@@ -133,7 +129,7 @@ def build(source, work, deps, host, env, jobs, name, prefix, output, epoch):
     directory.mkdir(parents=True)
     build_source = directory / "source"
     shutil.copytree(source, build_source, symlinks=True)
-    command = [build_source / "configure", "--host=arm64-apple-ios", f"--build={get([build_source / 'config.guess'])}", f"--with-build-python={host}", f"--prefix={prefix}", "--disable-framework", "--with-app-store-compliance=", "--with-system-libmpdec", "--with-ensurepip=upgrade", f"--with-openssl={deps}", f"LIBLZMA_CFLAGS=-I{deps / 'include'}", f"LIBLZMA_LIBS=-L{deps / 'lib'} -llzma", f"LIBFFI_CFLAGS=-I{deps / 'include'}", f"LIBFFI_LIBS=-L{deps / 'lib'} -lffi", f"LIBMPDEC_CFLAGS=-I{deps / 'include'}", f"LIBMPDEC_LIBS=-L{deps / 'lib'} -lmpdec", f"LIBZSTD_CFLAGS=-I{deps / 'include'}", f"LIBZSTD_LIBS=-L{deps / 'lib'} -lzstd"]
+    command = [build_source / "configure", "--host=arm64-apple-ios", f"--build={get([build_source / 'config.guess'])}", f"--with-build-python={host}", f"--prefix={prefix}", "--disable-framework", "--with-system-libmpdec", "--with-ensurepip=upgrade", f"--with-openssl={deps}", f"LIBLZMA_CFLAGS=-I{deps / 'include'}", f"LIBLZMA_LIBS=-L{deps / 'lib'} -llzma", f"LIBFFI_CFLAGS=-I{deps / 'include'}", f"LIBFFI_LIBS=-L{deps / 'lib'} -lffi", f"LIBMPDEC_CFLAGS=-I{deps / 'include'}", f"LIBMPDEC_LIBS=-L{deps / 'lib'} -lmpdec", f"LIBZSTD_CFLAGS=-I{deps / 'include'}", f"LIBZSTD_LIBS=-L{deps / 'lib'} -lzstd"]
     build_env = env | {"CPPFLAGS": f"{env['CPPFLAGS']} -I{deps / 'include'}", "LDFLAGS": f"-L{deps / 'lib'}"}
     run(command, cwd=build_source, env=build_env)
     run(["make", "-j", str(jobs), "build_all"], cwd=build_source, env=build_env)
