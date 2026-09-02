@@ -47,13 +47,8 @@ grep -q '^Depends:.*ca-certificates' "$PKGROOT/DEBIAN/control" ||
 
 package_contents="$WORKDIR/package.contents"
 dpkg-deb -c "$package" > "$package_contents"
-grep -q '/usr/local/bin/python3.14
-printf 'Validated standalone %s\n' "$package"
- "$package_contents" ||
+grep -Fq './usr/local/bin/python3.14' "$package_contents" ||
 	die "python3.14 is not in the package"
-grep -q '/usr/local/bin/python3 -> python3.14
-printf 'Validated standalone %s\n' "$package"
- "$package_contents" ||
+grep -Fq './usr/local/bin/python3 -> python3.14' "$package_contents" ||
 	die "python3 symlink is not in the package"
-
 printf 'Validated standalone %s\n' "$package"
