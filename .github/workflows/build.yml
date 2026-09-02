@@ -17,8 +17,6 @@ jobs:
         with:
           python-version: 3.14.7
       - run: python3 build.py
-      - if: failure()
-        run: sed -n '1,240p' .build/python3-ios-rootful/source/pyconfig.h
       - uses: actions/upload-artifact@v4
         with:
           name: python-ios-arm64-debs
