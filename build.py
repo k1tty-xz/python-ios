@@ -22,10 +22,16 @@ CPYTHON_REF = f"v{PYTHON_VERSION}"
 CPYTHON_SHA = "823f0323ee6ec1402088b73bce1a38473cac36dc"
 IOS_HOST = "arm64-apple-ios"
 DEPS = (
-    "BZip2-1.0.8-2", "libFFI-3.4.7-2", "OpenSSL-3.5.7-1",
-    "XZ-5.6.4-2", "mpdecimal-4.0.0-2", "zstd-1.5.7-1",
+    "BZip2-1.0.8-2",
+    "libFFI-3.4.7-2",
+    "OpenSSL-3.5.7-1",
+    "XZ-5.6.4-2",
+    "mpdecimal-4.0.0-2",
+    "zstd-1.5.7-1",
 )
-DEPS_URL = "https://github.com/beeware/cpython-apple-source-deps/releases/download"
+DEPS_URL = (
+    "https://github.com/beeware/cpython-apple-source-deps/releases/download"
+)
 
 
 def run(
@@ -51,26 +57,74 @@ def replace(path: Path, old: str, new: str, count: int = 1) -> None:
 
 def patch(source):
     configure = source / "configure"
-    replace(configure, '\t\t\tiOS) as_fn_error $? "iOS builds must use --enable-framework" "$LINENO" 5 ;;\n', "")
-    replace(configure, '\t\tiOS) as_fn_error $? "iOS builds must use --enable-framework" "$LINENO" 5 ;;\n', "")
-    replace(configure,
+    replace(
+        configure,
+        '\t\t\tiOS) as_fn_error $? "iOS builds must use --enable-framework" "$LINENO" 5 ;;\n',
+        "",
+    )
+    replace(
+        configure,
+        '\t\tiOS) as_fn_error $? "iOS builds must use --enable-framework" "$LINENO" 5 ;;\n',
+        "",
+    )
+    replace(
+        configure,
         "\tiOS/*)\n\t\tLDSHARED='$(CC) -dynamiclib -F . -framework $(PYTHONFRAMEWORK)'\n\t\tLDCXXSHARED='$(CXX) -dynamiclib -F . -framework $(PYTHONFRAMEWORK)'\n\t\tBLDSHARED=\"$LDSHARED\"\n",
-        "\tiOS/*)\n\t\tLDSHARED='$(CC) -bundle -undefined dynamic_lookup'\n\t\tLDCXXSHARED='$(CXX) -bundle -undefined dynamic_lookup'\n\t\tBLDSHARED=\"$LDSHARED\"\n")
-    replace(configure, "\tDarwin/*|iOS/*)\n\t\tLINKFORSHARED=\"$extra_undefs -framework CoreFoundation\"\n", "\tDarwin/*)\n\t\tLINKFORSHARED=\"$extra_undefs -framework CoreFoundation\"\n")
-    replace(configure, 'if test "$ac_sys_system" = "iOS"; then\n  MODULE_DEPS_SHARED="$MODULE_DEPS_SHARED \\$(PYTHONFRAMEWORKDIR)/\\$(PYTHONFRAMEWORK)"\nfi\n', 'if test "$ac_sys_system" = "iOS" && test "$enable_framework"; then\n  MODULE_DEPS_SHARED="$MODULE_DEPS_SHARED \\$(PYTHONFRAMEWORKDIR)/\\$(PYTHONFRAMEWORK)"\nfi\n')
-    replace(configure, '      iOS)\n        # Always apply the compliance patch on iOS; we can use the macOS patch\n        APP_STORE_COMPLIANCE_PATCH="Mac/Resources/app-store-compliance.patch"\n        { printf "%s\\n" "$as_me:${as_lineno-$LINENO}: result: applying default app store compliance patch" >&5\nprintf "%s\\n" "applying default app store compliance patch" >&6; }\n        ;;\n', '      iOS)\n        APP_STORE_COMPLIANCE_PATCH=\n        { printf "%s\\n" "$as_me:${as_lineno-$LINENO}: result: not patching for app store compliance" >&5\nprintf "%s\\n" "not patching for app store compliance" >&6; }\n        ;;\n')
-    replace(configure, "  iOS) :\n\n\n\n    py_cv_module__curses=n/a\n    py_cv_module__curses_panel=n/a\n    py_cv_module__gdbm=n/a\n    py_cv_module__multiprocessing=n/a\n    py_cv_module__posixshmem=n/a\n    py_cv_module__posixsubprocess=n/a\n    py_cv_module__scproxy=n/a\n    py_cv_module__tkinter=n/a\n    py_cv_module_grp=n/a\n    py_cv_module_nis=n/a\n    py_cv_module_readline=n/a\n    py_cv_module_pwd=n/a\n    py_cv_module_spwd=n/a\n    py_cv_module_syslog=n/a\n    py_cv_module_=n/a\n\n   ;; #(\n  CYGWIN*) :", "  iOS) :\n\n    py_cv_module__curses=n/a\n    py_cv_module__curses_panel=n/a\n    py_cv_module__scproxy=n/a\n\n   ;; #(\n  CYGWIN*) :")
-    replace(source / "Lib/subprocess.py", 'sys.platform not in {"emscripten", "wasi", "ios", "tvos", "watchos"}', 'sys.platform not in {"emscripten", "wasi", "tvos", "watchos"}')
-    replace(source / "Lib/site.py", 'Emscripten, iOS, tvOS, VxWorks, WASI, and watchOS', 'Emscripten, tvOS, VxWorks, WASI, and watchOS')
-    replace(source / "Lib/site.py", '{"emscripten", "ios", "tvos", "vxworks", "wasi", "watchos"}', '{"emscripten", "tvos", "vxworks", "wasi", "watchos"}')
-    replace(source / "Lib/sysconfig/__init__.py", 'Emscripten, iOS, tvOS, VxWorks, WASI, and watchOS', 'Emscripten, tvOS, VxWorks, WASI, and watchOS')
-    replace(source / "Lib/sysconfig/__init__.py", '{"emscripten", "ios", "tvos", "vxworks", "wasi", "watchos"}', '{"emscripten", "tvos", "vxworks", "wasi", "watchos"}')
+        "\tiOS/*)\n\t\tLDSHARED='$(CC) -bundle -undefined dynamic_lookup'\n\t\tLDCXXSHARED='$(CXX) -bundle -undefined dynamic_lookup'\n\t\tBLDSHARED=\"$LDSHARED\"\n",
+    )
+    replace(
+        configure,
+        '\tDarwin/*|iOS/*)\n\t\tLINKFORSHARED="$extra_undefs -framework CoreFoundation"\n',
+        '\tDarwin/*)\n\t\tLINKFORSHARED="$extra_undefs -framework CoreFoundation"\n',
+    )
+    replace(
+        configure,
+        'if test "$ac_sys_system" = "iOS"; then\n  MODULE_DEPS_SHARED="$MODULE_DEPS_SHARED \\$(PYTHONFRAMEWORKDIR)/\\$(PYTHONFRAMEWORK)"\nfi\n',
+        'if test "$ac_sys_system" = "iOS" && test "$enable_framework"; then\n  MODULE_DEPS_SHARED="$MODULE_DEPS_SHARED \\$(PYTHONFRAMEWORKDIR)/\\$(PYTHONFRAMEWORK)"\nfi\n',
+    )
+    replace(
+        configure,
+        '      iOS)\n        # Always apply the compliance patch on iOS; we can use the macOS patch\n        APP_STORE_COMPLIANCE_PATCH="Mac/Resources/app-store-compliance.patch"\n        { printf "%s\\n" "$as_me:${as_lineno-$LINENO}: result: applying default app store compliance patch" >&5\nprintf "%s\\n" "applying default app store compliance patch" >&6; }\n        ;;\n',
+        '      iOS)\n        APP_STORE_COMPLIANCE_PATCH=\n        { printf "%s\\n" "$as_me:${as_lineno-$LINENO}: result: not patching for app store compliance" >&5\nprintf "%s\\n" "not patching for app store compliance" >&6; }\n        ;;\n',
+    )
+    replace(
+        configure,
+        "  iOS) :\n\n\n\n    py_cv_module__curses=n/a\n    py_cv_module__curses_panel=n/a\n    py_cv_module__gdbm=n/a\n    py_cv_module__multiprocessing=n/a\n    py_cv_module__posixshmem=n/a\n    py_cv_module__posixsubprocess=n/a\n    py_cv_module__scproxy=n/a\n    py_cv_module__tkinter=n/a\n    py_cv_module_grp=n/a\n    py_cv_module_nis=n/a\n    py_cv_module_readline=n/a\n    py_cv_module_pwd=n/a\n    py_cv_module_spwd=n/a\n    py_cv_module_syslog=n/a\n    py_cv_module_=n/a\n\n   ;; #(\n  CYGWIN*) :",
+        "  iOS) :\n\n    py_cv_module__curses=n/a\n    py_cv_module__curses_panel=n/a\n    py_cv_module__scproxy=n/a\n\n   ;; #(\n  CYGWIN*) :",
+    )
+    replace(
+        source / "Lib/subprocess.py",
+        'sys.platform not in {"emscripten", "wasi", "ios", "tvos", "watchos"}',
+        'sys.platform not in {"emscripten", "wasi", "tvos", "watchos"}',
+    )
+    replace(
+        source / "Lib/site.py",
+        "Emscripten, iOS, tvOS, VxWorks, WASI, and watchOS",
+        "Emscripten, tvOS, VxWorks, WASI, and watchOS",
+    )
+    replace(
+        source / "Lib/site.py",
+        '{"emscripten", "ios", "tvos", "vxworks", "wasi", "watchos"}',
+        '{"emscripten", "tvos", "vxworks", "wasi", "watchos"}',
+    )
+    replace(
+        source / "Lib/sysconfig/__init__.py",
+        "Emscripten, iOS, tvOS, VxWorks, WASI, and watchOS",
+        "Emscripten, tvOS, VxWorks, WASI, and watchOS",
+    )
+    replace(
+        source / "Lib/sysconfig/__init__.py",
+        '{"emscripten", "ios", "tvos", "vxworks", "wasi", "watchos"}',
+        '{"emscripten", "tvos", "vxworks", "wasi", "watchos"}',
+    )
 
 
 def download(url: str, destination: Path) -> None:
     temporary = destination.with_name(f".{destination.name}.tmp")
     try:
-        with urllib.request.urlopen(url, timeout=120) as response, temporary.open("wb") as output:
+        with urllib.request.urlopen(
+            url, timeout=120
+        ) as response, temporary.open("wb") as output:
             shutil.copyfileobj(response, output)
         temporary.replace(destination)
     finally:
@@ -107,7 +161,9 @@ def ios_env(source: Path, min_ios: str, epoch: int) -> dict[str, str]:
 
 def tar_gz(root: Path, epoch: int) -> bytes:
     stream = io.BytesIO()
-    with gzip.GzipFile(fileobj=stream, mode="wb", mtime=epoch) as zipped, tarfile.open(fileobj=zipped, mode="w:") as tar:
+    with gzip.GzipFile(
+        fileobj=stream, mode="wb", mtime=epoch
+    ) as zipped, tarfile.open(fileobj=zipped, mode="w:") as tar:
         for path in sorted(root.rglob("*")):
             info = tar.gettarinfo(path, arcname=str(path.relative_to(root)))
             info.uid = info.gid = 0
@@ -122,11 +178,26 @@ def tar_gz(root: Path, epoch: int) -> bytes:
 
 
 def member(name: str, data: bytes, epoch: int) -> bytes:
-    header = (f"{name}/".ljust(16) + f"{epoch}".ljust(12) + "0".ljust(6) + "0".ljust(6) + "100644".ljust(8) + f"{len(data)}".ljust(10) + "`\n").encode()
+    header = (
+        f"{name}/".ljust(16)
+        + f"{epoch}".ljust(12)
+        + "0".ljust(6)
+        + "0".ljust(6)
+        + "100644".ljust(8)
+        + f"{len(data)}".ljust(10)
+        + "`\n"
+    ).encode()
     return header + data + (b"\n" if len(data) % 2 else b"")
 
 
-def deb(name: str, stage: Path, output: Path, epoch: int, architecture: str, layout: str) -> Path:
+def deb(
+    name: str,
+    stage: Path,
+    output: Path,
+    epoch: int,
+    architecture: str,
+    layout: str,
+) -> Path:
     control = Path(tempfile.mkdtemp(prefix="control-", dir=stage.parent))
     try:
         (control / "control").write_text(
@@ -166,7 +237,12 @@ def build(
         shutil.rmtree(directory)
     directory.mkdir(parents=True)
     build_source = directory / "source"
-    shutil.copytree(source, build_source, symlinks=True, ignore=shutil.ignore_patterns(".git"))
+    shutil.copytree(
+        source,
+        build_source,
+        symlinks=True,
+        ignore=shutil.ignore_patterns(".git"),
+    )
     command = [
         build_source / "configure",
         f"--host={IOS_HOST}",
@@ -187,11 +263,20 @@ def build(
         f"LIBZSTD_CFLAGS=-I{deps / 'include'}",
         f"LIBZSTD_LIBS=-L{deps / 'lib'} -lzstd",
     ]
-    build_env = env | {"CPPFLAGS": f"{env['CPPFLAGS']} -I{deps / 'include'}", "LDFLAGS": f"-L{deps / 'lib'}"}
+    build_env = env | {
+        "CPPFLAGS": f"{env['CPPFLAGS']} -I{deps / 'include'}",
+        "LDFLAGS": f"-L{deps / 'lib'}",
+    }
     run(command, cwd=build_source, env=build_env)
-    run(["make", "-j", str(jobs), "build_all"], cwd=build_source, env=build_env)
+    run(
+        ["make", "-j", str(jobs), "build_all"], cwd=build_source, env=build_env
+    )
     stage = directory / "stage"
-    run(["make", "install", f"DESTDIR={stage}"], cwd=build_source, env=build_env)
+    run(
+        ["make", "install", f"DESTDIR={stage}"],
+        cwd=build_source,
+        env=build_env,
+    )
     binary = next(stage.glob("**/bin/python3.14"))
     header = get(["otool", "-hv", binary]).lower()
     linked = get(["otool", "-L", binary]).lower()
@@ -213,7 +298,18 @@ def main():
     source = args.work / "cpython"
     if source.exists():
         shutil.rmtree(source)
-    run(["git", "clone", "--depth", "1", "--branch", CPYTHON_REF, "https://github.com/python/cpython.git", source])
+    run(
+        [
+            "git",
+            "clone",
+            "--depth",
+            "1",
+            "--branch",
+            CPYTHON_REF,
+            "https://github.com/python/cpython.git",
+            source,
+        ]
+    )
     if get(["git", "-C", source, "rev-parse", "HEAD"]) != CPYTHON_SHA:
         raise RuntimeError("unexpected CPython source")
     patch(source)
@@ -225,7 +321,21 @@ def main():
         ("python3-ios-rootful", "/usr/local", "iphoneos-arm"),
         ("python3-ios-rootless", "/var/jb/usr/local", "iphoneos-arm64"),
     ):
-        print(build(source, args.work, deps, host, env, args.jobs, name, prefix, architecture, args.output, epoch))
+        print(
+            build(
+                source,
+                args.work,
+                deps,
+                host,
+                env,
+                args.jobs,
+                name,
+                prefix,
+                architecture,
+                args.output,
+                epoch,
+            )
+        )
 
 
 if __name__ == "__main__":
