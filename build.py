@@ -18,7 +18,7 @@ from pathlib import Path
 
 
 PYTHON_VERSION = "3.14.7"
-PACKAGE_VERSION = "3.14.7-1"
+PACKAGE_VERSION = "3.14.7-2"
 CPYTHON_REF = f"v{PYTHON_VERSION}"
 CPYTHON_SHA = "823f0323ee6ec1402088b73bce1a38473cac36dc"
 IOS_HOST = "arm64-apple-ios"
@@ -157,12 +157,26 @@ def host_python() -> Path:
 
 
 def ios_env(source: Path, min_ios: str, epoch: int) -> dict[str, str]:
-    return os.environ | {
-        "PATH": f"{source / 'Apple/iOS/Resources/bin'}:{os.environ['PATH']}",
-        "CPPFLAGS": "-D_DARWIN_C_SOURCE",
-        "IPHONEOS_DEPLOYMENT_TARGET": min_ios,
-        "SOURCE_DATE_EPOCH": str(epoch),
-    }
+    environment = dict(os.environ)
+    for name in (
+        "PKG_CONFIG_PATH",
+        "Python_ROOT_DIR",
+        "Python2_ROOT_DIR",
+        "Python3_ROOT_DIR",
+    ):
+        environment.pop(name, None)
+    environment.update(
+        {
+            "PATH": (
+                f"{source / 'Apple/iOS/Resources/bin'}:"
+                "/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin"
+            ),
+            "CPPFLAGS": "-D_DARWIN_C_SOURCE",
+            "IPHONEOS_DEPLOYMENT_TARGET": min_ios,
+            "SOURCE_DATE_EPOCH": str(epoch),
+        }
+    )
+    return environment
 
 
 def tar_gz(root: Path, epoch: int) -> bytes:
@@ -210,6 +224,30 @@ def sign(stage: Path) -> None:
                 binary,
             ]
         )
+        run(["codesign", "--verify", "--strict", binary])
+
+
+def clean_sysconfig(
+    stage: Path, source: Path, deps: Path, host: Path
+) -> None:
+    """Remove build-machine paths from installed build metadata."""
+    lib = next(stage.glob("**/lib/python3.14"))
+    replacements = {
+        str(source): "/usr/src/cpython",
+        str(deps): "/usr/local",
+        str(host): "python3.14",
+        "/Users/runner/hostedtoolcache": "/usr/local",
+    }
+    for path in lib.glob("_sysconfigdata_*.py"):
+        text = path.read_text(encoding="utf-8")
+        for old, new in replacements.items():
+            text = text.replace(old, new)
+        path.write_text(text, encoding="utf-8")
+        for bytecode in (lib / "__pycache__").glob(f"{path.stem}*.pyc"):
+            bytecode.unlink()
+    for path in lib.glob("_sysconfig_vars_*.json"):
+        path.unlink()
+    (lib / "build-details.json").unlink(missing_ok=True)
 
 
 def deb(
@@ -304,6 +342,7 @@ def build(
     linked = get(["otool", "-L", binary]).lower()
     if "arm64" not in header or "python.framework" in linked:
         raise RuntimeError("unexpected interpreter linkage")
+    clean_sysconfig(stage, build_source, deps, host)
     sign(stage)
     return deb(name, stage, output, epoch, architecture, name.rsplit("-", 1)[-1])
 
