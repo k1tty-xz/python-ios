@@ -81,15 +81,10 @@ def host_python():
     return Path(sys.executable).resolve()
 
 
-def ios_env(min_ios, epoch):
-    sdk = get(["xcrun", "--sdk", "iphoneos", "--show-sdk-path"])
-    target = f"-target arm64-apple-ios{min_ios} -isysroot {sdk}"
-    clang = get(["xcrun", "--sdk", "iphoneos", "--find", "clang"])
+def ios_env(source, min_ios, epoch):
     return os.environ | {
-        "AR": get(["xcrun", "--sdk", "iphoneos", "--find", "ar"]),
-        "CC": f"{clang} {target}", "CPP": f"{clang} {target} -E",
-        "CXX": f"{get(['xcrun', '--sdk', 'iphoneos', '--find', 'clang++'])} {target}",
-        "RANLIB": get(["xcrun", "--sdk", "iphoneos", "--find", "ranlib"]),
+        "PATH": f"{source / 'Apple/iOS/Resources/bin'}:{os.environ['PATH']}",
+        "IPHONEOS_DEPLOYMENT_TARGET": min_ios,
         "SOURCE_DATE_EPOCH": str(epoch),
     }
 
@@ -168,7 +163,7 @@ def main():
     deps = args.work / "dependencies"
     dependencies(deps, args.work / "downloads")
     host = host_python()
-    env = ios_env(args.min_ios, epoch)
+    env = ios_env(source, args.min_ios, epoch)
     for name, prefix in (("python3-ios-rootful", "/usr/local"), ("python3-ios-rootless", "/var/jb/usr/local")):
         print(build(source, args.work, deps, host, env, args.jobs, name, prefix, args.output, epoch))
 
