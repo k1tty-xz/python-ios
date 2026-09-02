@@ -10,6 +10,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tarfile
 import urllib.request
 from pathlib import Path
@@ -74,15 +75,10 @@ def dependencies(prefix, cache):
         dylib.unlink()
 
 
-def host_python(source, work, jobs, epoch):
-    build = work / "host"
-    python = build / "python"
-    if not python.exists():
-        build.mkdir(parents=True, exist_ok=True)
-        env = os.environ | {"SOURCE_DATE_EPOCH": str(epoch)}
-        run([source / "configure", "--without-ensurepip"], cwd=build, env=env)
-        run(["make", "-j", str(jobs)], cwd=build, env=env)
-    return python
+def host_python():
+    if sys.version_info[:3] != (3, 14, 7):
+        raise RuntimeError("the build requires Python 3.14.7")
+    return Path(sys.executable).resolve()
 
 
 def ios_env(min_ios, epoch):
@@ -169,7 +165,7 @@ def main():
     patch(source)
     deps = args.work / "dependencies"
     dependencies(deps, args.work / "downloads")
-    host = host_python(source, args.work, args.jobs, epoch)
+    host = host_python()
     env = ios_env(args.min_ios, epoch)
     for name, prefix in (("python3-ios-rootful", "/usr/local"), ("python3-ios-rootless", "/var/jb/usr/local")):
         print(build(source, args.work, deps, host, env, args.jobs, name, prefix, args.output, epoch))
