@@ -59,6 +59,11 @@ def replace(path: Path, old: str, new: str, count: int = 1) -> None:
 def patch(source):
     configure = source / "configure"
     replace(
+        source / "Python/initconfig.c",
+        "#define USE_SYSTEM_LOGGER_DEFAULT 1;\n",
+        "#define USE_SYSTEM_LOGGER_DEFAULT 0;\n",
+    )
+    replace(
         configure,
         '\t\t\tiOS) as_fn_error $? "iOS builds must use --enable-framework" "$LINENO" 5 ;;\n',
         "",
