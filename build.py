@@ -129,7 +129,7 @@ def build(source, work, deps, host, env, jobs, name, prefix, output, epoch):
     directory.mkdir(parents=True)
     build_source = directory / "source"
     shutil.copytree(source, build_source, symlinks=True)
-    command = [build_source / "configure", "--host=arm64-apple-ios", f"--build={get([build_source / 'config.guess'])}", f"--with-build-python={host}", f"--prefix={prefix}", "--disable-framework", "--with-system-libmpdec", "--with-ensurepip=upgrade", f"--with-openssl={deps}", f"LIBLZMA_CFLAGS=-I{deps / 'include'}", f"LIBLZMA_LIBS=-L{deps / 'lib'} -llzma", f"LIBFFI_CFLAGS=-I{deps / 'include'}", f"LIBFFI_LIBS=-L{deps / 'lib'} -lffi", f"LIBMPDEC_CFLAGS=-I{deps / 'include'}", f"LIBMPDEC_LIBS=-L{deps / 'lib'} -lmpdec", f"LIBZSTD_CFLAGS=-I{deps / 'include'}", f"LIBZSTD_LIBS=-L{deps / 'lib'} -lzstd"]
+    command = [build_source / "configure", "--host=arm64-apple-ios", f"--build={get([build_source / 'config.guess'])}", f"--with-build-python={host}", f"--prefix={prefix}", "--disable-framework", "--disable-test-modules", "--with-system-libmpdec", "--with-ensurepip=upgrade", f"--with-openssl={deps}", f"LIBLZMA_CFLAGS=-I{deps / 'include'}", f"LIBLZMA_LIBS=-L{deps / 'lib'} -llzma", f"LIBFFI_CFLAGS=-I{deps / 'include'}", f"LIBFFI_LIBS=-L{deps / 'lib'} -lffi", f"LIBMPDEC_CFLAGS=-I{deps / 'include'}", f"LIBMPDEC_LIBS=-L{deps / 'lib'} -lmpdec", f"LIBZSTD_CFLAGS=-I{deps / 'include'}", f"LIBZSTD_LIBS=-L{deps / 'lib'} -lzstd"]
     build_env = env | {"CPPFLAGS": f"{env['CPPFLAGS']} -I{deps / 'include'}", "LDFLAGS": f"-L{deps / 'lib'}"}
     run(command, cwd=build_source, env=build_env)
     run(["make", "-j", str(jobs), "build_all"], cwd=build_source, env=build_env)
