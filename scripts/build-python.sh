@@ -52,8 +52,10 @@ tar -xzf "$archive" -C "$BUILD"
 		LIBFFI_LIBS="$LIBFFI_LIBS"
 	make -j"$JOBS"
 	make install DESTDIR="$STAGE" ENSUREPIP=no
-	pip_wheel="$source_dir"/Lib/ensurepip/_bundled/pip-*.whl
-	[[ -f "$pip_wheel" ]] || die "CPython bundled pip wheel is missing: $pip_wheel"
+	pip_wheels=("$source_dir"/Lib/ensurepip/_bundled/pip-*.whl)
+	[[ ${#pip_wheels[@]} -eq 1 && -f "${pip_wheels[0]}" ]] || \
+		die "expected one CPython bundled pip wheel"
+	pip_wheel="${pip_wheels[0]}"
 	pip_version="${pip_wheel##*/pip-}"
 	pip_version="${pip_version%%-*}"
 	"$PYTHON_FOR_BUILD" -m pip install --no-index --no-deps --ignore-installed \
