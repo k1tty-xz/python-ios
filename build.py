@@ -181,7 +181,7 @@ def tar_gz(root: Path, epoch: int) -> bytes:
     stream = io.BytesIO()
     with gzip.GzipFile(
         fileobj=stream, mode="wb", mtime=epoch
-    ) as zipped, tarfile.open(fileobj=zipped, mode="w:") as tar:
+    ) as zipped, tarfile.open(fileobj=zipped, mode="w:", format=tarfile.GNU_FORMAT) as tar:
         for path in sorted(root.rglob("*")):
             info = tar.gettarinfo(path, arcname=str(path.relative_to(root)))
             info.uid = info.gid = 0
