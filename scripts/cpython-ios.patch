@@ -10,3 +10,15 @@ diff --git a/Python/remote_debug.h b/Python/remote_debug.h
  #endif
      }
      return page_size;
+diff --git a/configure b/configure
+--- a/configure
++++ b/configure
+@@ -15360,7 +15360,7 @@
+ 
+ 
+ have_libffi=missing
+-if test "x$ac_sys_system" = xDarwin
++if test "x$ac_sys_system" = xDarwin && test "x${PYTHON_IOS_EXTERNAL_LIBFFI-}" != xyes
+ then :
+ 
+   save_CFLAGS=$CFLAGS
