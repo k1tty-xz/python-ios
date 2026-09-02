@@ -1,0 +1,21 @@
+name: Build jailbreak Python
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 build.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-ios-arm64-debs
+          path: dist/*.deb
+          if-no-files-found: error
