@@ -135,11 +135,13 @@ def build(source, work, deps, host, env, jobs, name, prefix, output, epoch):
     if directory.exists():
         shutil.rmtree(directory)
     directory.mkdir(parents=True)
-    command = [source / "configure", "--host=arm64-apple-ios", f"--build={get([source / 'config.guess'])}", f"--with-build-python={host}", f"--prefix={prefix}", "--disable-framework", "--with-app-store-compliance=", "--with-system-libmpdec", "--with-ensurepip=upgrade", f"--with-openssl={deps}", f"LIBLZMA_CFLAGS=-I{deps / 'include'}", f"LIBLZMA_LIBS=-L{deps / 'lib'} -llzma", f"LIBFFI_CFLAGS=-I{deps / 'include'}", f"LIBFFI_LIBS=-L{deps / 'lib'} -lffi", f"LIBMPDEC_CFLAGS=-I{deps / 'include'}", f"LIBMPDEC_LIBS=-L{deps / 'lib'} -lmpdec", f"LIBZSTD_CFLAGS=-I{deps / 'include'}", f"LIBZSTD_LIBS=-L{deps / 'lib'} -lzstd"]
-    run(command, cwd=directory, env=env)
-    run(["make", "-j", str(jobs)], cwd=directory, env=env)
+    build_source = directory / "source"
+    shutil.copytree(source, build_source, symlinks=True)
+    command = [build_source / "configure", "--host=arm64-apple-ios", f"--build={get([build_source / 'config.guess'])}", f"--with-build-python={host}", f"--prefix={prefix}", "--disable-framework", "--with-app-store-compliance=", "--with-system-libmpdec", "--with-ensurepip=upgrade", f"--with-openssl={deps}", f"LIBLZMA_CFLAGS=-I{deps / 'include'}", f"LIBLZMA_LIBS=-L{deps / 'lib'} -llzma", f"LIBFFI_CFLAGS=-I{deps / 'include'}", f"LIBFFI_LIBS=-L{deps / 'lib'} -lffi", f"LIBMPDEC_CFLAGS=-I{deps / 'include'}", f"LIBMPDEC_LIBS=-L{deps / 'lib'} -lmpdec", f"LIBZSTD_CFLAGS=-I{deps / 'include'}", f"LIBZSTD_LIBS=-L{deps / 'lib'} -lzstd"]
+    run(command, cwd=build_source, env=env)
+    run(["make", "-j", str(jobs)], cwd=build_source, env=env)
     stage = directory / "stage"
-    run(["make", "install", f"DESTDIR={stage}"], cwd=directory, env=env)
+    run(["make", "install", f"DESTDIR={stage}"], cwd=build_source, env=env)
     binary = next(stage.glob("**/bin/python3.14"))
     if "arm64" not in get(["otool", "-hv", binary]) or "Framework" in get(["otool", "-L", binary]):
         raise RuntimeError("unexpected interpreter linkage")
