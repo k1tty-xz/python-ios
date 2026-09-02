@@ -41,6 +41,7 @@ tar -xzf "$archive" -C "$BUILD"
 		--with-system-libmpdec=no \
 		--with-ensurepip=no \
 		--disable-test-modules \
+		--disable-ipv6 \
 		LIBFFI_CFLAGS="$LIBFFI_CFLAGS" \
 		LIBFFI_LIBS="$LIBFFI_LIBS"
 	make -j"$JOBS"
