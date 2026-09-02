@@ -24,6 +24,10 @@ description="$(file -b "$interpreter")"
 otool -hv "$interpreter" | grep -q 'EXECUTE' ||
 	die "Mach-O file is not an executable"
 
+printf 'Mach-O header:\n'
+otool -hv "$interpreter"
+printf 'Mach-O platform load command:\n'
+otool -l "$interpreter" | awk '/LC_BUILD_VERSION/{show=1; count=0} show && count < 6 {print; count++}'
 otool -l "$interpreter" | grep -A4 'LC_BUILD_VERSION' | grep -q 'platform IOS' ||
 	die "Mach-O file is not an iOS executable"
 
