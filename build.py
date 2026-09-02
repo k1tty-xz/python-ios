@@ -18,6 +18,7 @@ from pathlib import Path
 
 
 PYTHON_VERSION = "3.14.7"
+PACKAGE_VERSION = "3.14.7-1"
 CPYTHON_REF = f"v{PYTHON_VERSION}"
 CPYTHON_SHA = "823f0323ee6ec1402088b73bce1a38473cac36dc"
 IOS_HOST = "arm64-apple-ios"
@@ -217,14 +218,14 @@ def deb(
     control = Path(tempfile.mkdtemp(prefix="control-", dir=stage.parent))
     try:
         (control / "control").write_text(
-            f"Package: {name}\nVersion: {PYTHON_VERSION}\n"
+            f"Package: {name}\nVersion: {PACKAGE_VERSION}\n"
             f"Architecture: {architecture}\nMaintainer: k1tty-xz\n"
             "Name: Python 3.14\nSection: Development\n"
             f"Description: Standalone CPython {PYTHON_VERSION} for jailbroken iOS ({layout}).\n",
             encoding="utf-8",
         )
         output.mkdir(parents=True, exist_ok=True)
-        package = output / f"{name}_{PYTHON_VERSION}_{architecture}.deb"
+        package = output / f"{name}_{PACKAGE_VERSION}_{architecture}.deb"
         with package.open("wb") as file:
             file.write(b"!<arch>\n")
             file.write(member("debian-binary", b"2.0\n", epoch))
