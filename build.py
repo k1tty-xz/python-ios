@@ -20,7 +20,6 @@ from pathlib import Path
 
 PYTHON_VERSION = "3.14.7"
 PACKAGE_VERSION = "3.14.7-2"
-CPYTHON_REF = f"v{PYTHON_VERSION}"
 CPYTHON_SHA = "823f0323ee6ec1402088b73bce1a38473cac36dc"
 IOS_HOST = "arm64-apple-ios"
 DEPS = (
@@ -31,9 +30,7 @@ DEPS = (
     "mpdecimal-4.0.0-2",
     "zstd-1.5.7-1",
 )
-DEPS_URL = (
-    "https://github.com/beeware/cpython-apple-source-deps/releases/download"
-)
+DEPS_URL = "https://github.com/beeware/cpython-apple-source-deps/releases/download"
 
 
 def run(
@@ -50,9 +47,9 @@ def get(command: Sequence[str | Path]) -> str:
     return subprocess.check_output(command, text=True).strip()
 
 
-def replace(path: Path, old: str, new: str, count: int = 1) -> None:
+def replace(path: Path, old: str, new: str) -> None:
     text = path.read_text(encoding="utf-8")
-    if text.count(old) != count:
+    if text.count(old) != 1:
         raise RuntimeError(f"unexpected {path}: {old!r}")
     path.write_text(text.replace(old, new), encoding="utf-8")
 
@@ -278,8 +275,8 @@ def deb(
     output: Path,
     epoch: int,
     architecture: str,
-    layout: str,
 ) -> Path:
+    layout = name.rsplit("-", 1)[-1]
     control = Path(tempfile.mkdtemp(prefix="control-", dir=stage.parent))
     try:
         (control / "control").write_text(
@@ -367,7 +364,7 @@ def build(
     install_pip(stage, prefix)
     clean_sysconfig(stage, build_source, deps, host)
     sign(stage)
-    return deb(name, stage, output, epoch, architecture, name.rsplit("-", 1)[-1])
+    return deb(name, stage, output, epoch, architecture)
 
 
 def main():
@@ -390,7 +387,7 @@ def main():
             "--depth",
             "1",
             "--branch",
-            CPYTHON_REF,
+            f"v{PYTHON_VERSION}",
             "https://github.com/python/cpython.git",
             source,
         ]
