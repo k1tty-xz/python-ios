@@ -1,4 +1,4 @@
-name: Build jailbreak Python
+name: Build CPython for iOS
 
 on:
   push:
@@ -12,13 +12,18 @@ jobs:
   package:
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: 3.14.7
       - run: python3 build.py
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
-          name: python-ios-arm64-debs
-          path: dist/*.deb
+          path: dist/python3-ios-rootful_3.14.7_iphoneos-arm64.deb
+          archive: false
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v7
+        with:
+          path: dist/python3-ios-rootless_3.14.7_iphoneos-arm64.deb
+          archive: false
           if-no-files-found: error
