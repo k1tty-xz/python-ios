@@ -84,11 +84,9 @@ def host_python():
 def ios_env(source, min_ios, epoch):
     return os.environ | {
         "PATH": f"{source / 'Apple/iOS/Resources/bin'}:{os.environ['PATH']}",
+        "CPPFLAGS": "-D_DARWIN_C_SOURCE",
         "IPHONEOS_DEPLOYMENT_TARGET": min_ios,
         "SOURCE_DATE_EPOCH": str(epoch),
-        "ac_cv_header_pthread_h": "yes",
-        "ac_cv_sizeof_pthread_t": "8",
-        "ac_cv_sizeof_wchar_t": "4",
     }
 
 
@@ -136,7 +134,7 @@ def build(source, work, deps, host, env, jobs, name, prefix, output, epoch):
     build_source = directory / "source"
     shutil.copytree(source, build_source, symlinks=True)
     command = [build_source / "configure", "--host=arm64-apple-ios", f"--build={get([build_source / 'config.guess'])}", f"--with-build-python={host}", f"--prefix={prefix}", "--disable-framework", "--with-app-store-compliance=", "--with-system-libmpdec", "--with-ensurepip=upgrade", f"--with-openssl={deps}", f"LIBLZMA_CFLAGS=-I{deps / 'include'}", f"LIBLZMA_LIBS=-L{deps / 'lib'} -llzma", f"LIBFFI_CFLAGS=-I{deps / 'include'}", f"LIBFFI_LIBS=-L{deps / 'lib'} -lffi", f"LIBMPDEC_CFLAGS=-I{deps / 'include'}", f"LIBMPDEC_LIBS=-L{deps / 'lib'} -lmpdec", f"LIBZSTD_CFLAGS=-I{deps / 'include'}", f"LIBZSTD_LIBS=-L{deps / 'lib'} -lzstd"]
-    build_env = env | {"CPPFLAGS": f"-I{deps / 'include'}", "LDFLAGS": f"-L{deps / 'lib'}"}
+    build_env = env | {"CPPFLAGS": f"{env['CPPFLAGS']} -I{deps / 'include'}", "LDFLAGS": f"-L{deps / 'lib'}"}
     run(command, cwd=build_source, env=build_env)
     run(["make", "-j", str(jobs), "build_all"], cwd=build_source, env=build_env)
     stage = directory / "stage"
