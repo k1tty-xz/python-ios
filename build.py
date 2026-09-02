@@ -192,7 +192,9 @@ def build(
     stage = directory / "stage"
     run(["make", "install", f"DESTDIR={stage}"], cwd=build_source, env=build_env)
     binary = next(stage.glob("**/bin/python3.14"))
-    if "arm64" not in get(["otool", "-hv", binary]) or "Framework" in get(["otool", "-L", binary]):
+    header = get(["otool", "-hv", binary]).lower()
+    linked = get(["otool", "-L", binary]).lower()
+    if "arm64" not in header or "python.framework" in linked:
         raise RuntimeError("unexpected interpreter linkage")
     return deb(name, stage, output, epoch)
 
