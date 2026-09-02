@@ -28,6 +28,7 @@ tar -xzf "$archive" -C "$BUILD"
 		--prefix="$LIBFFI_PREFIX" \
 		--disable-shared \
 		--enable-static \
+		--disable-raw-api \
 		--disable-multi-os-directory
 	make -j"$JOBS"
 	make install

@@ -21,8 +21,11 @@ description="$(file -b "$interpreter")"
 [[ "$description" == *Mach-O* ]] || die "interpreter is not Mach-O: $description"
 [[ "$description" == *executable* ]] || die "interpreter is not executable: $description"
 [[ "$description" == *arm64* ]] || die "interpreter is not arm64: $description"
-otool -hv "$interpreter" | grep -q 'MH_EXECUTE' ||
+otool -hv "$interpreter" | grep -q 'EXECUTE' ||
 	die "Mach-O file is not an executable"
+
+otool -l "$interpreter" | grep -A4 'LC_BUILD_VERSION' | grep -q 'platform IOS' ||
+	die "Mach-O file is not an iOS executable"
 
 otool -L "$interpreter" | grep -q 'Python.framework' &&
 	die "interpreter links against Python.framework"
