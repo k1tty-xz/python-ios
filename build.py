@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build rootful and rootless CPython Debian packages for jailbroken iOS."""
+"""Build CPython Debian packages for iOS."""
 
 from __future__ import annotations
 
@@ -133,7 +133,7 @@ def deb(name: str, stage: Path, output: Path, epoch: int) -> Path:
         (control / "control").write_text(
             f"Package: {name}\nVersion: {PYTHON_VERSION}\n"
             f"Architecture: {PACKAGE_ARCH}\nMaintainer: k1tty-xz\n"
-            "Description: CPython for a jailbroken iOS root filesystem\n",
+            "Description: CPython for iOS\n",
             encoding="utf-8",
         )
         output.mkdir(parents=True, exist_ok=True)
