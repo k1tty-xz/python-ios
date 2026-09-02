@@ -45,9 +45,15 @@ otool -L "$interpreter" | grep -q 'Python.framework' &&
 grep -q '^Depends:.*ca-certificates' "$PKGROOT/DEBIAN/control" ||
 	die "ca-certificates dependency is missing"
 
-dpkg-deb -c "$package" | grep -q '/usr/local/bin/python3.14$' ||
+package_contents="$WORKDIR/package.contents"
+dpkg-deb -c "$package" > "$package_contents"
+grep -q '/usr/local/bin/python3.14
+printf 'Validated standalone %s\n' "$package"
+ "$package_contents" ||
 	die "python3.14 is not in the package"
-dpkg-deb -c "$package" | grep -q '/usr/local/bin/python3 -> python3.14$' ||
+grep -q '/usr/local/bin/python3 -> python3.14
+printf 'Validated standalone %s\n' "$package"
+ "$package_contents" ||
 	die "python3 symlink is not in the package"
 
 printf 'Validated standalone %s\n' "$package"
