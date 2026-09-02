@@ -26,10 +26,12 @@ otool -hv "$interpreter" | grep -q 'EXECUTE' ||
 
 printf 'Mach-O header:\n'
 otool -hv "$interpreter"
-printf 'Mach-O platform load command:\n'
-otool -l "$interpreter" | awk '/LC_BUILD_VERSION/{show=1; count=0} show && count < 6 {print; count++}'
-otool -l "$interpreter" | grep -A4 'LC_BUILD_VERSION' | grep -q 'platform IOS' ||
+load_command="$(otool -l "$interpreter" | awk '/LC_BUILD_VERSION/{show=1; count=0} show && count < 6 {print; count++}')"
+printf 'Mach-O platform load command:\n%s\n' "$load_command"
+[[ "$load_command" == *"platform 2"* ]] ||
 	die "Mach-O file is not an iOS executable"
+[[ "$load_command" == *"minos $MIN_IOS"* ]] ||
+	die "Mach-O minimum iOS version is not $MIN_IOS"
 
 otool -L "$interpreter" | grep -q 'Python.framework' &&
 	die "interpreter links against Python.framework"
