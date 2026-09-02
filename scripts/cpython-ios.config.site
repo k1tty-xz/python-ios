@@ -5,6 +5,7 @@ ac_cv_file__dev_ptmx=no
 ac_cv_file__dev_ptc=no
 
 # CPython 3.14.7 disables these APIs on iOS.
+ac_cv_func_clock_settime=no
 ac_cv_func_getentropy=no
 ac_cv_func_getgroups=no
 ac_cv_func_sendfile=no
