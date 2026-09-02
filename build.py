@@ -11,12 +11,17 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import tempfile
 import urllib.request
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 
 
-CPYTHON_REF = "v3.14.7"
+PYTHON_VERSION = "3.14.7"
+CPYTHON_REF = f"v{PYTHON_VERSION}"
 CPYTHON_SHA = "823f0323ee6ec1402088b73bce1a38473cac36dc"
+IOS_HOST = "arm64-apple-ios"
+PACKAGE_ARCH = "iphoneos-arm64"
 DEPS = (
     "BZip2-1.0.8-2", "libFFI-3.4.7-2", "OpenSSL-3.5.7-1",
     "XZ-5.6.4-2", "mpdecimal-4.0.0-2", "zstd-1.5.7-1",
@@ -24,16 +29,21 @@ DEPS = (
 DEPS_URL = "https://github.com/beeware/cpython-apple-source-deps/releases/download"
 
 
-def run(command, *, cwd=None, env=None):
+def run(
+    command: Sequence[str | Path],
+    *,
+    cwd: Path | None = None,
+    env: Mapping[str, str] | None = None,
+) -> None:
     print("+", " ".join(map(str, command)))
     subprocess.run(command, cwd=cwd, env=env, check=True)
 
 
-def get(command):
+def get(command: Sequence[str | Path]) -> str:
     return subprocess.check_output(command, text=True).strip()
 
 
-def replace(path, old, new, count=1):
+def replace(path: Path, old: str, new: str, count: int = 1) -> None:
     text = path.read_text(encoding="utf-8")
     if text.count(old) != count:
         raise RuntimeError(f"unexpected {path}: {old!r}")
@@ -58,26 +68,36 @@ def patch(source):
     replace(source / "Lib/sysconfig/__init__.py", '{"emscripten", "ios", "tvos", "vxworks", "wasi", "watchos"}', '{"emscripten", "tvos", "vxworks", "wasi", "watchos"}')
 
 
-def dependencies(prefix, cache):
+def download(url: str, destination: Path) -> None:
+    temporary = destination.with_name(f".{destination.name}.tmp")
+    try:
+        with urllib.request.urlopen(url, timeout=120) as response, temporary.open("wb") as output:
+            shutil.copyfileobj(response, output)
+        temporary.replace(destination)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def dependencies(prefix: Path, cache: Path) -> None:
     prefix.mkdir(parents=True, exist_ok=True)
     cache.mkdir(parents=True, exist_ok=True)
     for dep in DEPS:
         name = f"{dep.lower()}-iphoneos.arm64.tar.gz"
         archive = cache / name
         if not archive.exists():
-            urllib.request.urlretrieve(f"{DEPS_URL}/{dep}/{name}", archive)
+            download(f"{DEPS_URL}/{dep}/{name}", archive)
         shutil.unpack_archive(archive, prefix)
     for dylib in prefix.rglob("*.dylib"):
         dylib.unlink()
 
 
-def host_python():
-    if sys.version_info[:3] != (3, 14, 7):
-        raise RuntimeError("the build requires Python 3.14.7")
+def host_python() -> Path:
+    if sys.version_info[:3] != tuple(map(int, PYTHON_VERSION.split("."))):
+        raise RuntimeError(f"the build requires Python {PYTHON_VERSION}")
     return Path(sys.executable).resolve()
 
 
-def ios_env(source, min_ios, epoch):
+def ios_env(source: Path, min_ios: str, epoch: int) -> dict[str, str]:
     return os.environ | {
         "PATH": f"{source / 'Apple/iOS/Resources/bin'}:{os.environ['PATH']}",
         "CPPFLAGS": "-D_DARWIN_C_SOURCE",
@@ -86,7 +106,7 @@ def ios_env(source, min_ios, epoch):
     }
 
 
-def tar_gz(root, epoch):
+def tar_gz(root: Path, epoch: int) -> bytes:
     stream = io.BytesIO()
     with gzip.GzipFile(fileobj=stream, mode="wb", mtime=epoch) as zipped, tarfile.open(fileobj=zipped, mode="w:") as tar:
         for path in sorted(root.rglob("*")):
@@ -102,34 +122,70 @@ def tar_gz(root, epoch):
     return stream.getvalue()
 
 
-def member(name, data, epoch):
+def member(name: str, data: bytes, epoch: int) -> bytes:
     header = (f"{name}/".ljust(16) + f"{epoch}".ljust(12) + "0".ljust(6) + "0".ljust(6) + "100644".ljust(8) + f"{len(data)}".ljust(10) + "`\n").encode()
     return header + data + (b"\n" if len(data) % 2 else b"")
 
 
-def deb(name, stage, output, epoch):
-    control = stage.parent / "control"
-    control.mkdir()
-    (control / "control").write_text(f"Package: {name}\nVersion: 3.14.7\nArchitecture: iphoneos-arm64\nMaintainer: k1tty-xz\nDescription: CPython for a jailbroken iOS root filesystem\n", encoding="utf-8")
-    output.mkdir(parents=True, exist_ok=True)
-    package = output / f"{name}_3.14.7_iphoneos-arm64.deb"
-    with package.open("wb") as file:
-        file.write(b"!<arch>\n")
-        file.write(member("debian-binary", b"2.0\n", epoch))
-        file.write(member("control.tar.gz", tar_gz(control, epoch), epoch))
-        file.write(member("data.tar.gz", tar_gz(stage, epoch), epoch))
-    shutil.rmtree(control)
-    return package
+def deb(name: str, stage: Path, output: Path, epoch: int) -> Path:
+    control = Path(tempfile.mkdtemp(prefix="control-", dir=stage.parent))
+    try:
+        (control / "control").write_text(
+            f"Package: {name}\nVersion: {PYTHON_VERSION}\n"
+            f"Architecture: {PACKAGE_ARCH}\nMaintainer: k1tty-xz\n"
+            "Description: CPython for a jailbroken iOS root filesystem\n",
+            encoding="utf-8",
+        )
+        output.mkdir(parents=True, exist_ok=True)
+        package = output / f"{name}_{PYTHON_VERSION}_{PACKAGE_ARCH}.deb"
+        with package.open("wb") as file:
+            file.write(b"!<arch>\n")
+            file.write(member("debian-binary", b"2.0\n", epoch))
+            file.write(member("control.tar.gz", tar_gz(control, epoch), epoch))
+            file.write(member("data.tar.gz", tar_gz(stage, epoch), epoch))
+        return package
+    finally:
+        shutil.rmtree(control, ignore_errors=True)
 
 
-def build(source, work, deps, host, env, jobs, name, prefix, output, epoch):
+def build(
+    source: Path,
+    work: Path,
+    deps: Path,
+    host: Path,
+    env: Mapping[str, str],
+    jobs: int,
+    name: str,
+    prefix: str,
+    output: Path,
+    epoch: int,
+) -> Path:
     directory = work / name
     if directory.exists():
         shutil.rmtree(directory)
     directory.mkdir(parents=True)
     build_source = directory / "source"
-    shutil.copytree(source, build_source, symlinks=True)
-    command = [build_source / "configure", "--host=arm64-apple-ios", f"--build={get([build_source / 'config.guess'])}", f"--with-build-python={host}", f"--prefix={prefix}", "--disable-framework", "--disable-test-modules", "--with-system-libmpdec", "--with-ensurepip=upgrade", f"--with-openssl={deps}", f"LIBLZMA_CFLAGS=-I{deps / 'include'}", f"LIBLZMA_LIBS=-L{deps / 'lib'} -llzma", f"LIBFFI_CFLAGS=-I{deps / 'include'}", f"LIBFFI_LIBS=-L{deps / 'lib'} -lffi", f"LIBMPDEC_CFLAGS=-I{deps / 'include'}", f"LIBMPDEC_LIBS=-L{deps / 'lib'} -lmpdec", f"LIBZSTD_CFLAGS=-I{deps / 'include'}", f"LIBZSTD_LIBS=-L{deps / 'lib'} -lzstd"]
+    shutil.copytree(source, build_source, symlinks=True, ignore=shutil.ignore_patterns(".git"))
+    command = [
+        build_source / "configure",
+        f"--host={IOS_HOST}",
+        f"--build={get([build_source / 'config.guess'])}",
+        f"--with-build-python={host}",
+        f"--prefix={prefix}",
+        "--disable-framework",
+        "--disable-test-modules",
+        "--with-system-libmpdec",
+        "--with-ensurepip=upgrade",
+        f"--with-openssl={deps}",
+        f"LIBLZMA_CFLAGS=-I{deps / 'include'}",
+        f"LIBLZMA_LIBS=-L{deps / 'lib'} -llzma",
+        f"LIBFFI_CFLAGS=-I{deps / 'include'}",
+        f"LIBFFI_LIBS=-L{deps / 'lib'} -lffi",
+        f"LIBMPDEC_CFLAGS=-I{deps / 'include'}",
+        f"LIBMPDEC_LIBS=-L{deps / 'lib'} -lmpdec",
+        f"LIBZSTD_CFLAGS=-I{deps / 'include'}",
+        f"LIBZSTD_LIBS=-L{deps / 'lib'} -lzstd",
+    ]
     build_env = env | {"CPPFLAGS": f"{env['CPPFLAGS']} -I{deps / 'include'}", "LDFLAGS": f"-L{deps / 'lib'}"}
     run(command, cwd=build_source, env=build_env)
     run(["make", "-j", str(jobs), "build_all"], cwd=build_source, env=build_env)
