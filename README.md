@@ -17,10 +17,17 @@ Build and validate:
 
 The package is written to:
 
-    work/python3.14_3.14.7-2_iphoneos-arm.deb
+    work/python3.14_3.14.7-3_iphoneos-arm.deb
 
 The build uses CPython's normal executable and static-library install, compiled
 with Apple's iPhoneOS SDK. It does not build or install Python.framework.
+
+## Scope
+
+This is a jailbreak-only Unix-style port. Official CPython iOS support targets
+embedded applications and framework distribution; this project intentionally
+builds a standalone executable for a jailbroken device. It is not an App Store
+distribution.
 
 ## Included
 
@@ -29,9 +36,13 @@ with Apple's iPhoneOS SDK. It does not build or install Python.framework.
 - OpenSSL 3.5.8 for TLS and hashlib
 - libffi 3.8.0 for ctypes
 - bundled mpdecimal for decimal
-- pip, bootstrapped during the build with host-side ensurepip
+- pip staged from CPython's bundled wheel
 
-The package is for jailbroken devices. It is not an App Store distribution.
+Modules that depend on unavailable iOS facilities are intentionally omitted,
+including curses, multiprocessing, and native subprocess support. The iOS
+kernel still determines which operating-system facilities are available at
+runtime. Test sockets, TLS, filesystem access, and native extension loading on
+the target device before relying on a package.
 
 ## Device test
 
@@ -41,11 +52,9 @@ After installing the package:
     python3 -c 'import sys, ssl, ctypes, sqlite3, decimal; print(sys.version); print(sys.platform)'
     python3 -m pip --version
 
-Modules that depend on unavailable iOS facilities are intentionally omitted,
-including curses, multiprocessing, and native subprocess support. The iOS
-kernel still determines which operating-system facilities are available at
-runtime. Test sockets, TLS, filesystem access, and native extension loading on
-the target device before relying on a package.
+Source builds and packages that require subprocesses are not expected to work
+on iOS. Pure-Python packages and compatible prebuilt wheels are the practical
+pip targets.
 
 ## Sources
 
