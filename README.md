@@ -41,9 +41,7 @@ directly.
 
 The build applies one minimal, tracked CPython source patch: it re-enables the
 official `_posixsubprocess` module and `subprocess` fork/exec path for this
-jailbreak-only target. This is not supported on stock iOS. Device behavior
-remains unverified until the package is installed and tested on jailbroken
-hardware.
+jailbreak-only target. This is not supported on stock iOS. Rootful device behavior has been tested.
 
 ## References
 
