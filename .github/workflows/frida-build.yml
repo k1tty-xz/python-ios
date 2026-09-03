@@ -105,7 +105,11 @@ jobs:
             archive="$work/devkit-$arch.tar.xz"
             curl -fsSL --retry 5 -o "$archive" \
               "https://github.com/frida/frida/releases/download/$FRIDA_VERSION/frida-core-devkit-$FRIDA_VERSION-ios-$arch.tar.xz"
-            expected_sha="${FRIDA_$(printf '%s' "$arch" | tr '[:lower:]' '[:lower:]' | tr -d ' ' | tr '[:lower:]' '[:upper:]')_DEVKIT_SHA256}"
+            if [ "$arch" = arm64 ]; then
+              expected_sha="$FRIDA_ARM64_DEVKIT_SHA256"
+            else
+              expected_sha="$FRIDA_ARM64E_DEVKIT_SHA256"
+            fi
             printf '%s  %s\n' "$expected_sha" "$archive" | shasum -a 256 --check
             mkdir -p "$devkit"
             tar -xf "$archive" --strip-components=1 -C "$devkit"
