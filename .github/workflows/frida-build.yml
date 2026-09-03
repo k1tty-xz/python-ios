@@ -107,7 +107,8 @@ jobs:
           export PYTHON="$work/venv/bin/python"
 
           cd "$work/source"
-          ./configure --host=ios-arm64 --without-prebuilds=toolchain,sdk:build,sdk:host \
+          ./configure --host=ios-arm64 --with-apple-min-os=ios=13.0 \
+            --without-prebuilds=toolchain,sdk:build,sdk:host \
             -- -Dfrida-core:compat=disabled
           make -j"$(sysctl -n hw.ncpu)"
 
@@ -181,9 +182,7 @@ jobs:
           dpkg-deb -x "$package" "$root"
           extension="$(find "$root/usr/lib/python3.14/site-packages/frida" -name '_frida*.so' -type f -print -quit)"
           xcrun lipo "$extension" -verify_arch arm64
-          build_info="$(xcrun vtool -show-build "$extension")"
-          printf '%s\n' "$build_info"
-          grep -Eiq 'platform[[:space:]]+ios' <<<"$build_info"
+          xcrun vtool -show-build "$extension" | tee "$RUNNER_TEMP/frida-build-info.txt" | grep -F 'platform IOS'
           codesign --verify --strict "$extension"
           test "$(dpkg-deb --field "$package" Package)" = python3.14-frida
           test "$(dpkg-deb --field "$package" Architecture)" = iphoneos-arm64
