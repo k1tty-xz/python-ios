@@ -32,7 +32,7 @@ jobs:
       IOS_HOST: arm64-apple-ios
       IOS_MULTIARCH: arm64-iphoneos
       DEBIAN_ARCH: iphoneos-arm
-      DEB_NAME: python3.14_3.14.7-3_iphoneos-arm_rootful.deb
+      DEB_NAME: python3.14_3.14.7-4_iphoneos-arm_rootful.deb
 
     steps:
       - name: Check out source
@@ -70,7 +70,7 @@ jobs:
           set -euxo pipefail
           python3 Apple build iOS build --clean
           python3 Apple build iOS "$IOS_HOST" -- \
-            --with-ensurepip=no \
+            --with-ensurepip=install \
             LDFLAGS=-Wl,-rpath,/usr/lib
 
       - name: Build command-line launcher
@@ -123,7 +123,7 @@ jobs:
           installed_size="$(du -sk "$stage/usr" | awk '{print $1}')"
           cat > "$stage/DEBIAN/control" <<EOF
           Package: python3.14
-          Version: ${CPYTHON_VERSION}-3
+          Version: ${CPYTHON_VERSION}-4
           Architecture: ${DEBIAN_ARCH}
           Maintainer: k1tty-xz <187893856+k1tty-xz@users.noreply.github.com>
           Installed-Size: ${installed_size}
@@ -146,7 +146,7 @@ jobs:
                 ' Runtime: /usr/lib/python3.14' \
                 ' Target:  arm64 iOS (iphoneos-arm)' \
                 ' Console: standard terminal input and output' \
-                ' Note:    pip is not included in this build.' \
+                ' pip:     bootstrapped by CPython ensurepip.' \
                 ' Rootless support will follow device testing.'
               ;;
           esac
@@ -204,7 +204,8 @@ jobs:
           nm -u "$stage/usr/bin/python3.14" | grep -F '_PyConfig_InitPythonConfig'
           test -f "$stage/usr/lib/python3.14/encodings/__init__.py"
           test "$(find "$stage/usr/lib/python3.14/lib-dynload" -name '*.so' | wc -l)" -gt 0
-          test ! -e "$stage/usr/bin/pip3"
+          test -x "$stage/usr/bin/pip3"
+          test -x "$stage/usr/bin/pip3.14"
           test -x "$stage/DEBIAN/postinst"
           test -x "$stage/DEBIAN/postrm"
           sh -n "$stage/DEBIAN/postinst"
