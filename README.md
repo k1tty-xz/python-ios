@@ -1,50 +1,39 @@
 # CPython 3.14 for jailbroken iOS
 
-[![Build](https://github.com/k1tty-xz/python-ios/actions/workflows/build.yml/badge.svg)](https://github.com/k1tty-xz/python-ios/actions/workflows/build.yml)
+A complete, system-wide CPython 3.14.7 package for rootful jailbroken iOS.
 
-A system-wide CPython 3.14 for rootful jailbroken iOS devices.
+## Current build
 
-## Status
-
-The package uses CPython's official iOS build and Apple's `arm64` device target,
-which runs on arm64 and arm64e devices. A small launcher uses CPython's public
-configuration API so the terminal keeps normal standard input, output, and
-error streams instead of redirecting them to the iOS system log. The build
-also enables CPython's existing `_posixsubprocess` extension for jailbroken
-iOS, where the kernel permits `fork`/`exec`.
-
-Rootful device tests confirm normal console I/O, subprocess execution, and
-pip installation. Rootless support remains deferred.
+- Package: `python3.14 3.14.7-8`
+- Target: `arm64-apple-ios` for arm64 and arm64e devices
+- Prefix: `/usr`
+- Includes the standard library, subprocess support, and pip
+- Rootful behavior was verified on iOS 14.8; this revision awaits a device regression test
 
 ## Install
 
-Download the `.deb` from a successful workflow run and install it on the device:
+Add `https://k1tty-xz.github.io/` to your package manager, then run:
 
 ```sh
-dpkg -i ./python3.14_3.14.7-7_iphoneos-arm_rootful.deb
-/usr/bin/python3.14 --version
-/usr/bin/python3 -m pip --version
+apt update
+apt install python3.14
 ```
 
-Quick standard-library check:
-
-```sh
-/usr/bin/python3.14 -c 'import bz2, ctypes, lzma, sqlite3, ssl, zlib; print("OK")'
-```
+Start Python with `python3` and use pip with `python3 -m pip`.
 
 ## Build
 
-Run **Build rootful package** from the repository’s **Actions** tab. The
-workflow downloads and verifies CPython 3.14.7, cross-compiles it with
-CPython’s official iOS build, validates the output, and uploads the `.deb`
-directly.
+Run [Build rootful package](https://github.com/k1tty-xz/python-ios/actions/workflows/build.yml).
+The workflow uses CPython's official iOS build system and official command-line
+launcher, then produces one installable `.deb`.
 
-The build applies one minimal, tracked CPython source patch: it re-enables the
-official `_posixsubprocess` module and `subprocess` fork/exec path for this
-jailbreak-only target. This is not supported on stock iOS. Rootful device behavior has been tested.
+A single patch enables jailbreak-only process support, terminal streams, pip
+staging, and CLI-safe iOS version detection. These changes are not supported on
+stock iOS.
+
+Rootless packaging and the optional `readline` extension are not included yet.
 
 ## References
 
 - [CPython iOS build documentation](https://github.com/python/cpython/blob/v3.14.7/Apple/iOS/README.md)
 - [PEP 730](https://peps.python.org/pep-0730/)
-- [GitHub Actions workflow](https://github.com/k1tty-xz/python-ios/actions/workflows/build.yml)
