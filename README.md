@@ -21,7 +21,7 @@ remain deferred until the rootful package passes those tests.
 Download the `.deb` from a successful workflow run and install it on the device:
 
 ```sh
-dpkg -i ./python3.14_3.14.7-2_iphoneos-arm_rootful.deb
+dpkg -i ./python3.14_3.14.7-3_iphoneos-arm_rootful.deb
 /usr/bin/python3.14 --version
 ```
 
