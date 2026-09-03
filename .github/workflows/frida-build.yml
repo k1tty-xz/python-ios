@@ -126,7 +126,8 @@ jobs:
           mkdir -p "$stage/DEBIAN" "$site"
 
           cp -p "$FRIDA_GENERATED/__init__.py" "$FRIDA_GENERATED/aio.py" \
-            "$FRIDA_GENERATED/_frida.pyi" "$FRIDA_GENERATED/py.typed" "$site/"
+            "$FRIDA_GENERATED/_frida.pyi" "$site/"
+          cp -p "$work/source/frida/py.typed" "$site/"
           cp -p "$FRIDA_EXTENSION" "$site/"
           codesign --force --sign - --timestamp=none "$site/$(basename "$FRIDA_EXTENSION")"
 
