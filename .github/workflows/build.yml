@@ -104,6 +104,53 @@ jobs:
           Description: CPython ${CPYTHON_VERSION} for rootful jailbroken iOS
           EOF
 
+          cat > "$stage/DEBIAN/postinst" <<'EOF'
+          #!/bin/sh
+          set -eu
+
+          case "${1:-}" in
+            configure)
+              printf '%s\n' \
+                '========================================' \
+                ' CPython 3.14 installed successfully' \
+                '========================================' \
+                ' Command: /usr/bin/python3.14' \
+                ' Runtime: /usr/lib/python3.14' \
+                ' Target:  arm64 iOS (iphoneos-arm)' \
+                ' Note:    pip is not included in this build.' \
+                ' Rootless support will follow device testing.'
+              ;;
+          esac
+
+          exit 0
+          EOF
+          chmod 755 "$stage/DEBIAN/postinst"
+
+          cat > "$stage/DEBIAN/postrm" <<'EOF'
+          #!/bin/sh
+          set -eu
+
+          case "${1:-}" in
+            remove|purge)
+              # dpkg removes packaged files. Only remove empty directories;
+              # user-created files and site packages are intentionally kept.
+              for directory in \
+                /usr/share/doc/python3.14 \
+                /usr/lib/python3.14/lib-dynload \
+                /usr/lib/python3.14/site-packages \
+                /usr/lib/python3.14 \
+                /usr/lib/Python.framework
+              do
+                rmdir "$directory" 2>/dev/null || true
+              done
+              printf '%s\n' 'CPython 3.14 removed; user-created Python files were kept.'
+              ;;
+          esac
+
+          exit 0
+          EOF
+          chmod 755 "$stage/DEBIAN/postrm"
+
       - name: Validate target and package contents
         run: |
           set -euxo pipefail
@@ -127,6 +174,10 @@ jobs:
           test -f "$stage/usr/lib/python3.14/encodings/__init__.py"
           test "$(find "$stage/usr/lib/python3.14/lib-dynload" -name '*.so' | wc -l)" -gt 0
           test ! -e "$stage/usr/bin/pip3"
+          test -x "$stage/DEBIAN/postinst"
+          test -x "$stage/DEBIAN/postrm"
+          sh -n "$stage/DEBIAN/postinst"
+          sh -n "$stage/DEBIAN/postrm"
 
           brew install dpkg
           mkdir -p "$GITHUB_WORKSPACE/dist"
