@@ -181,7 +181,9 @@ jobs:
           dpkg-deb -x "$package" "$root"
           extension="$(find "$root/usr/lib/python3.14/site-packages/frida" -name '_frida*.so' -type f -print -quit)"
           xcrun lipo "$extension" -verify_arch arm64
-          xcrun vtool -show-build "$extension" | grep -F 'platform IOS'
+          build_info="$(xcrun vtool -show-build "$extension")"
+          printf '%s\n' "$build_info"
+          grep -Eiq 'platform[[:space:]]+ios' <<<"$build_info"
           codesign --verify --strict "$extension"
           test "$(dpkg-deb --field "$package" Package)" = python3.14-frida
           test "$(dpkg-deb --field "$package" Architecture)" = iphoneos-arm64
