@@ -34,7 +34,7 @@ jobs:
           persist-credentials: false
 
       - name: Install packaging tools
-        run: brew install dpkg pkg-config
+        run: brew install dpkg pkg-config vala
 
       - name: Get CPython target
         env:
