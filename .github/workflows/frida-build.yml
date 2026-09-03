@@ -89,6 +89,7 @@ jobs:
           python3 -m venv "$work/venv"
           "$work/venv/bin/python" -m pip install --disable-pip-version-check setuptools
 
+          export PATH="$work/venv/bin:$PATH"
           export PKG_CONFIG_PATH="$devkit/lib/pkgconfig"
           export CFLAGS="-I$CPYTHON_ROOT/usr/lib/Python.framework/Headers"
           export LDFLAGS="-F$CPYTHON_ROOT/usr/lib -Wl,-rpath,/usr/lib -framework Python"
