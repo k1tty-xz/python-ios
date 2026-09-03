@@ -10,6 +10,20 @@ diff --git a/Lib/subprocess.py b/Lib/subprocess.py
  
  if _mswindows:
      import _winapi
+diff --git a/Lib/ensurepip/__init__.py b/Lib/ensurepip/__init__.py
+--- a/Lib/ensurepip/__init__.py
++++ b/Lib/ensurepip/__init__.py
+@@ -169,6 +169,8 @@ def _bootstrap(*, root=None, upgrade=False, user=False,
+         if root:
+             args += ["--root", root]
+         if upgrade:
+             args += ["--upgrade"]
++        if root:
++            args += ["--no-user"]
+         if user:
+             args += ["--user"]
+         if verbosity:
+             args += ["-" + "v" * verbosity]
 diff --git a/configure b/configure
 --- a/configure
 +++ b/configure
