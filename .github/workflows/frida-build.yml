@@ -22,6 +22,7 @@ env:
   CPYTHON_ARTIFACT_PATTERN: ^python3\.14_.+_iphoneos-arm_rootful\.deb$
   PACKAGE_VERSION: 17.17.0-1
   DEB_NAME: python3.14-frida_17.17.0-1_iphoneos-arm64.deb
+  IOS_CERTID: -
 
 jobs:
   build:
