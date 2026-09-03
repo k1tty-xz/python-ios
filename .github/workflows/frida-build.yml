@@ -106,7 +106,8 @@ jobs:
           export PYTHON="$work/venv/bin/python"
 
           cd "$work/source"
-          ./configure --host=ios-arm64 --without-prebuilds=toolchain,sdk:build,sdk:host
+          ./configure --host=ios-arm64 --without-prebuilds=toolchain,sdk:build,sdk:host \
+            -Dfrida-core:compat=disabled
           make -j"$(sysctl -n hw.ncpu)"
 
           generated="$work/source/build/frida"
