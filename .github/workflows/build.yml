@@ -3,12 +3,10 @@ name: Build rootful package
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - .github/workflows/build.yml
-      - python-ios-cli.c
-      - patches/cpython-ios-jailbreak-subprocess.patch
+      - patches/cpython-ios-jailbreak.patch
 
 concurrency:
   group: rootful-${{ github.ref }}
@@ -27,47 +25,36 @@ jobs:
     timeout-minutes: 120
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
-      CPYTHON_VERSION: 3.14.7
-      CPYTHON_SHA256: 3b48dac8fb59f62eaa67ac83c1eb12bda1b7a08406dd286e252c11a66be27f81
+      PYTHON_VERSION: 3.14.7
+      PYTHON_SHA256: 3b48dac8fb59f62eaa67ac83c1eb12bda1b7a08406dd286e252c11a66be27f81
+      PACKAGE_VERSION: 3.14.7-8
       IOS_HOST: arm64-apple-ios
       IOS_MULTIARCH: arm64-iphoneos
-      DEBIAN_ARCH: iphoneos-arm
-      DEB_NAME: python3.14_3.14.7-7_iphoneos-arm_rootful.deb
+      DEB_NAME: python3.14_3.14.7-8_iphoneos-arm_rootful.deb
 
     steps:
       - name: Check out source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - name: Select toolchain
+      - name: Build CPython
         run: |
-          set -euxo pipefail
+          set -euo pipefail
+          test "$(uname -m)" = arm64
           test -d "$DEVELOPER_DIR"
           xcodebuild -version
-          test "$(uname -m)" = arm64
           xcrun --sdk iphoneos --show-sdk-path
 
-      - name: Download CPython
-        run: |
-          set -euxo pipefail
-          archive="Python-${CPYTHON_VERSION}.tar.xz"
-          curl --fail --location --retry 5 --output "$archive" \
-            "https://www.python.org/ftp/python/${CPYTHON_VERSION}/${archive}"
-          printf '%s  %s\n' "$CPYTHON_SHA256" "$archive" | shasum -a 256 --check
+          archive="Python-${PYTHON_VERSION}.tar.xz"
+          curl -fsSL --retry 5 -o "$archive" \
+            "https://www.python.org/ftp/python/${PYTHON_VERSION}/${archive}"
+          printf '%s  %s\n' "$PYTHON_SHA256" "$archive" | shasum -a 256 --check
           tar -xf "$archive"
+          cd "Python-${PYTHON_VERSION}"
 
-      - name: Enable jailbreak subprocess support
-        working-directory: Python-${{ env.CPYTHON_VERSION }}
-        run: |
-          set -euxo pipefail
           patch --forward --strip=1 \
-            < "$GITHUB_WORKSPACE/patches/cpython-ios-jailbreak-subprocess.patch"
-
-      - name: Build CPython for iOS
-        working-directory: Python-${{ env.CPYTHON_VERSION }}
-        run: |
-          set -euxo pipefail
+            < "$GITHUB_WORKSPACE/patches/cpython-ios-jailbreak.patch"
           python3 Apple build iOS build --clean
           sudo -n env DEVELOPER_DIR="$DEVELOPER_DIR" PATH="$PATH" \
             DESTDIR="$PWD/cross-build/$IOS_HOST/" \
@@ -75,35 +62,27 @@ jobs:
             --with-ensurepip=install \
             LDFLAGS=-Wl,-rpath,/usr/lib
 
-      - name: Build command-line launcher
-        working-directory: Python-${{ env.CPYTHON_VERSION }}
-        run: |
-          set -euxo pipefail
           prefix="cross-build/${IOS_HOST}/Apple/iOS/Frameworks/${IOS_MULTIARCH}"
           compiler="$PWD/Apple/iOS/Resources/bin/${IOS_HOST}-clang"
-
-          test -x "$compiler"
-          test -f "$prefix/Python.framework/Headers/Python.h"
           IPHONEOS_DEPLOYMENT_TARGET=13.0 "$compiler" \
             -std=c11 -Wall -Wextra -Werror \
             -I "$prefix/Python.framework/Headers" \
             -F "$prefix" \
-            "$GITHUB_WORKSPACE/python-ios-cli.c" \
+            Programs/python.c \
             -framework Python \
             -Wl,-rpath,/usr/lib \
             -o "$GITHUB_WORKSPACE/python3.14"
 
-      - name: Assemble rootful filesystem
-        working-directory: Python-${{ env.CPYTHON_VERSION }}
+      - name: Assemble package
+        working-directory: Python-${{ env.PYTHON_VERSION }}
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           prefix="cross-build/${IOS_HOST}/Apple/iOS/Frameworks/${IOS_MULTIARCH}"
           stage="$GITHUB_WORKSPACE/stage"
 
           test -f "$GITHUB_WORKSPACE/python3.14"
           test -f "$prefix/Python.framework/Python"
           test -f "$prefix/lib/python3.14/os.py"
-          test -d "$prefix/lib/python3.14/lib-dynload"
           test -f "$prefix/lib/python3.14/lib-dynload/_posixsubprocess.cpython-314-iphoneos.so"
 
           mkdir -p "$stage/DEBIAN" "$stage/usr/bin" "$stage/usr/lib" \
@@ -115,23 +94,21 @@ jobs:
           ln -s Python.framework/Python "$stage/usr/lib/libpython3.14.dylib"
           cp -p LICENSE "$stage/usr/share/doc/python3.14/LICENSE"
 
-          find "$stage/usr/lib/python3.14/lib-dynload" -type f -name '*.so' \
+          find "$stage/usr/lib/python3.14/lib-dynload" -name '*.so' \
             -exec codesign --force --sign - --timestamp=none {} \;
-          codesign --force --sign - --timestamp=none \
-            "$stage/usr/lib/Python.framework"
-          codesign --force --sign - --timestamp=none \
-            "$stage/usr/bin/python3.14"
+          codesign --force --sign - --timestamp=none "$stage/usr/lib/Python.framework"
+          codesign --force --sign - --timestamp=none "$stage/usr/bin/python3.14"
 
           installed_size="$(du -sk "$stage/usr" | awk '{print $1}')"
           cat > "$stage/DEBIAN/control" <<EOF
           Package: python3.14
-          Version: ${CPYTHON_VERSION}-7
-          Architecture: ${DEBIAN_ARCH}
+          Version: ${PACKAGE_VERSION}
+          Architecture: iphoneos-arm
           Maintainer: k1tty-xz <187893856+k1tty-xz@users.noreply.github.com>
           Installed-Size: ${installed_size}
           Section: Development
           Priority: optional
-          Description: CPython ${CPYTHON_VERSION} for rootful jailbroken iOS
+          Description: CPython ${PYTHON_VERSION} for rootful jailbroken iOS
           EOF
 
           cat > "$stage/DEBIAN/postinst" <<'EOF'
@@ -141,19 +118,15 @@ jobs:
           case "${1:-}" in
             configure)
               printf '%s\n' \
-                '========================================' \
-                ' CPython 3.14 installed successfully' \
-                '========================================' \
-                ' Command: /usr/bin/python3.14' \
-                ' Runtime: /usr/lib/python3.14' \
-                ' Target:  arm64 iOS (iphoneos-arm)' \
-                ' Console: standard terminal input and output' \
-                ' pip:     bootstrapped by CPython ensurepip.' \
-                ' Rootless support will follow device testing.'
+                '╭────────────────────────────────────────╮' \
+                '│  CPython 3.14.7 is ready                │' \
+                '╰────────────────────────────────────────╯' \
+                '  Run      python3' \
+                '  pip      python3 -m pip' \
+                '  Prefix   /usr' \
+                '  Target   arm64 iOS · rootful'
               ;;
           esac
-
-          exit 0
           EOF
           chmod 755 "$stage/DEBIAN/postinst"
 
@@ -163,65 +136,52 @@ jobs:
 
           case "${1:-}" in
             remove|purge)
-              # dpkg removes packaged files. Only remove empty directories;
-              # user-created files and site packages are intentionally kept.
-              for directory in \
-                /usr/share/doc/python3.14 \
-                /usr/lib/python3.14/lib-dynload \
-                /usr/lib/python3.14/site-packages \
-                /usr/lib/python3.14 \
-                /usr/lib/Python.framework
-              do
-                rmdir "$directory" 2>/dev/null || true
-              done
-              printf '%s\n' 'CPython 3.14 removed; user-created Python files were kept.'
+              printf '%s\n' \
+                '╭────────────────────────────────────────╮' \
+                '│  CPython 3.14 removed                  │' \
+                '╰────────────────────────────────────────╯' \
+                '  User-installed packages were kept.'
               ;;
           esac
-
-          exit 0
           EOF
           chmod 755 "$stage/DEBIAN/postrm"
 
-      - name: Validate target and package contents
+      - name: Validate package
         run: |
-          set -euxo pipefail
+          set -euo pipefail
           stage="$GITHUB_WORKSPACE/stage"
-          count=0
 
-          while IFS= read -r -d '' item; do
-            if file "$item" | grep -q 'Mach-O'; then
-              xcrun lipo "$item" -verify_arch arm64
-              xcrun vtool -show-build "$item" | grep 'platform IOS'
-              codesign --verify --strict "$item"
-              count=$((count + 1))
-            fi
-          done < <(find "$stage/usr" -type f -print0)
+          check_macho() {
+            xcrun lipo "$1" -verify_arch arm64
+            xcrun vtool -show-build "$1" | grep -F 'platform IOS'
+            codesign --verify --strict "$1"
+          }
 
-          test "$count" -gt 1
-          otool -L "$stage/usr/bin/python3.14" | \
-            grep -F '@rpath/Python.framework/Python'
-          otool -l "$stage/usr/bin/python3.14" | grep -A2 LC_RPATH | \
-            grep -F 'path /usr/lib'
-          nm -u "$stage/usr/bin/python3.14" | grep -F '_Py_RunMain'
-          nm -u "$stage/usr/bin/python3.14" | grep -F '_PyConfig_InitPythonConfig'
+          check_macho "$stage/usr/bin/python3.14"
+          check_macho "$stage/usr/lib/Python.framework/Python"
+          while IFS= read -r -d '' extension; do
+            check_macho "$extension"
+          done < <(find "$stage/usr/lib/python3.14/lib-dynload" -name '*.so' -print0)
+
+          otool -L "$stage/usr/bin/python3.14" | grep -F '@rpath/Python.framework/Python'
+          otool -l "$stage/usr/bin/python3.14" | grep -A2 LC_RPATH | grep -F 'path /usr/lib'
+          nm -u "$stage/usr/bin/python3.14" | grep -F '_Py_BytesMain'
           test -f "$stage/usr/lib/python3.14/encodings/__init__.py"
-          test "$(find "$stage/usr/lib/python3.14/lib-dynload" -name '*.so' | wc -l)" -gt 0
+          test -f "$stage/usr/lib/python3.14/lib-dynload/_posixsubprocess.cpython-314-iphoneos.so"
           test -f "$stage/usr/lib/python3.14/site-packages/pip/__main__.py"
-          test -f "$stage/usr/lib/python3.14/site-packages/pip/__init__.py"
-          test "$(find "$stage/usr/lib/python3.14/site-packages" -maxdepth 1 -type d -name 'pip-*.dist-info' | wc -l)" -eq 1
-          test -x "$stage/DEBIAN/postinst"
-          test -x "$stage/DEBIAN/postrm"
+          test "$(find "$stage/usr/lib/python3.14/site-packages" -maxdepth 1 -name 'pip-*.dist-info' | wc -l)" -eq 1
           sh -n "$stage/DEBIAN/postinst"
           sh -n "$stage/DEBIAN/postrm"
 
           brew install dpkg
-          mkdir -p "$GITHUB_WORKSPACE/dist"
-          dpkg-deb --build --root-owner-group "$stage" \
-            "$GITHUB_WORKSPACE/dist/$DEB_NAME"
-          dpkg-deb --info "$GITHUB_WORKSPACE/dist/$DEB_NAME"
-          dpkg-deb --contents "$GITHUB_WORKSPACE/dist/$DEB_NAME"
+          mkdir -p dist
+          dpkg-deb --build --root-owner-group "$stage" "dist/$DEB_NAME"
+          test "$(dpkg-deb --field "dist/$DEB_NAME" Package)" = python3.14
+          test "$(dpkg-deb --field "dist/$DEB_NAME" Version)" = "$PACKAGE_VERSION"
+          test "$(dpkg-deb --field "dist/$DEB_NAME" Architecture)" = iphoneos-arm
+          dpkg-deb --info "dist/$DEB_NAME"
 
-      - name: Upload .deb
+      - name: Upload package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           path: dist/${{ env.DEB_NAME }}
