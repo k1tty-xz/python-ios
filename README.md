@@ -12,8 +12,10 @@ configuration API so the terminal keeps normal standard input, output, and
 error streams instead of redirecting them to the iOS system log.
 
 The rootful launcher has been tested on a device: terminal input/output, redirection,
-and tracebacks work. Rootless and pip support remain deferred until they can be
-verified separately.
+and tracebacks work. The tested standard-library features pass. CPython disables
+process spawning on iOS, and this build has no native readline extension; both
+limitations are documented rather than bypassed with unsupported patches. Rootless
+and pip support remain deferred until they can be verified separately.
 
 ## Install
 
