@@ -13,7 +13,7 @@ diff --git a/Lib/subprocess.py b/Lib/subprocess.py
 diff --git a/Lib/ensurepip/__init__.py b/Lib/ensurepip/__init__.py
 --- a/Lib/ensurepip/__init__.py
 +++ b/Lib/ensurepip/__init__.py
-@@ -169,6 +169,8 @@ def _bootstrap(*, root=None, upgrade=False, user=False,
+@@ -164,8 +164,10 @@ def _bootstrap(*, root=None, upgrade=False, user=False,
          if root:
              args += ["--root", root]
          if upgrade:
@@ -27,7 +27,19 @@ diff --git a/Lib/ensurepip/__init__.py b/Lib/ensurepip/__init__.py
 diff --git a/Lib/_ios_support.py b/Lib/_ios_support.py
 --- a/Lib/_ios_support.py
 +++ b/Lib/_ios_support.py
-@@ -10,12 +10,13 @@
+@@ -1,6 +1,9 @@
+ import sys
+ try:
+-    from ctypes import cdll, c_void_p, c_char_p, util
++    from ctypes import (
++        POINTER, byref, cdll, c_char_p, c_int, c_size_t, c_void_p,
++        create_string_buffer, util,
++    )
+ except ImportError:
+     # ctypes is an optional module. If it's not present, we're limited in what
+     # we can tell about the system, but we don't want to prevent the module
+@@ -10,18 +13,44 @@
+ else:
      # ctypes is available. Load the ObjC library, and wrap the objc_getClass,
      # sel_registerName methods
 -    lib = util.find_library("objc")
@@ -46,21 +58,51 @@ diff --git a/Lib/_ios_support.py b/Lib/_ios_support.py
      objc.objc_getClass.argtypes = [c_char_p]
      objc.sel_registerName.restype = c_void_p
      objc.sel_registerName.argtypes = [c_char_p]
-@@ -38,8 +39,13 @@ def get_platform_ios():
+ 
+ 
++def _get_product_version():
++    if not objc:
++        return ""
++
++    try:
++        lib = util.find_library("c") or "libSystem.dylib"
++        system = cdll.LoadLibrary(lib)
++        sysctlbyname = system.sysctlbyname
++        sysctlbyname.restype = c_int
++        sysctlbyname.argtypes = [
++            c_char_p, c_void_p, POINTER(c_size_t), c_void_p, c_size_t,
++        ]
++        size = c_size_t()
++        if sysctlbyname(b"kern.osproductversion", None, byref(size), None, 0):
++            return ""
++        value = create_string_buffer(size.value)
++        if sysctlbyname(
++            b"kern.osproductversion", value, byref(size), None, 0
++        ):
++            return ""
++        return value.value.decode("ascii")
++    except (AttributeError, OSError, ValueError, UnicodeDecodeError):
++        return ""
++
++
+ def get_platform_ios():
+     # Determine if this is a simulator using the multiarch value
+     is_simulator = sys.implementation._multiarch.endswith("simulator")
+@@ -38,8 +67,13 @@ def get_platform_ios():
      # Equivalent of:
      #   device = [UIDevice currentDevice]
      UIDevice = objc.objc_getClass(b"UIDevice")
 +    if not UIDevice:
-+        return "iOS", "", "", is_simulator
++        return "iOS", _get_product_version(), "", is_simulator
 +
      SEL_currentDevice = objc.sel_registerName(b"currentDevice")
      device = objc.objc_msgSend(UIDevice, SEL_currentDevice)
 +    if not device:
-+        return "iOS", "", "", is_simulator
++        return "iOS", _get_product_version(), "", is_simulator
  
      # Equivalent of:
      #   device_systemVersion = [device systemVersion]
-@@ -64,8 +70,14 @@ def get_platform_ios():
+@@ -64,8 +98,16 @@ def get_platform_ios():
      #   system = [device_systemName UTF8String]
      #   release = [device_systemVersion UTF8String]
      #   model = [device_model UTF8String]
@@ -75,6 +117,8 @@ diff --git a/Lib/_ios_support.py b/Lib/_ios_support.py
 +
 +    system = decode(device_systemName) or "iOS"
 +    release = decode(device_systemVersion)
++    if not release:
++        release = _get_product_version()
 +    model = decode(device_model)
  
      return system, release, model, is_simulator
