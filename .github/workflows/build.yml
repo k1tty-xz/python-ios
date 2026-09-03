@@ -102,8 +102,8 @@ jobs:
 
           while IFS= read -r -d '' item; do
             if file "$item" | grep -q 'Mach-O'; then
-              xcrun lipo -verify_arch arm64 "$item"
-              xcrun vtool -show-build "$item" | grep -q 'platform IOS'
+              xcrun lipo "$item" -verify_arch arm64
+              xcrun vtool -show-build "$item" | grep 'platform IOS'
               codesign --verify --strict "$item"
               count=$((count + 1))
             fi
@@ -132,4 +132,3 @@ jobs:
           path: dist/${{ env.PACKAGE }}
           archive: false
           if-no-files-found: error
-
