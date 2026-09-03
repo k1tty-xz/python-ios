@@ -24,6 +24,60 @@ diff --git a/Lib/ensurepip/__init__.py b/Lib/ensurepip/__init__.py
              args += ["--user"]
          if verbosity:
              args += ["-" + "v" * verbosity]
+diff --git a/Lib/_ios_support.py b/Lib/_ios_support.py
+--- a/Lib/_ios_support.py
++++ b/Lib/_ios_support.py
+@@ -10,12 +10,13 @@
+     # ctypes is available. Load the ObjC library, and wrap the objc_getClass,
+     # sel_registerName methods
+-    lib = util.find_library("objc")
+-    if lib is None:
+-        # Failed to load the objc library
+-        raise ImportError("ObjC runtime library couldn't be loaded")
++    # find_library() cannot resolve the dyld shared cache on older iOS.
++    lib = util.find_library("objc") or "libobjc.dylib"
+ 
+-    objc = cdll.LoadLibrary(lib)
++    try:
++        objc = cdll.LoadLibrary(lib)
++    except OSError:
++        raise ImportError("ObjC runtime library couldn't be loaded")
+     objc.objc_getClass.restype = c_void_p
+     objc.objc_getClass.argtypes = [c_char_p]
+     objc.sel_registerName.restype = c_void_p
+     objc.sel_registerName.argtypes = [c_char_p]
+@@ -38,8 +39,13 @@ def get_platform_ios():
+     # Equivalent of:
+     #   device = [UIDevice currentDevice]
+     UIDevice = objc.objc_getClass(b"UIDevice")
++    if not UIDevice:
++        return "iOS", "", "", is_simulator
++
+     SEL_currentDevice = objc.sel_registerName(b"currentDevice")
+     device = objc.objc_msgSend(UIDevice, SEL_currentDevice)
++    if not device:
++        return "iOS", "", "", is_simulator
+ 
+     # Equivalent of:
+     #   device_systemVersion = [device systemVersion]
+@@ -64,8 +70,14 @@ def get_platform_ios():
+     #   system = [device_systemName UTF8String]
+     #   release = [device_systemVersion UTF8String]
+     #   model = [device_model UTF8String]
+-    system = objc.objc_msgSend(device_systemName, SEL_UTF8String).decode()
+-    release = objc.objc_msgSend(device_systemVersion, SEL_UTF8String).decode()
+-    model = objc.objc_msgSend(device_model, SEL_UTF8String).decode()
++    def decode(value):
++        if not value:
++            return ""
++        value = objc.objc_msgSend(value, SEL_UTF8String)
++        return value.decode() if value else ""
++
++    system = decode(device_systemName) or "iOS"
++    release = decode(device_systemVersion)
++    model = decode(device_model)
+ 
+     return system, release, model, is_simulator
 diff --git a/configure b/configure
 --- a/configure
 +++ b/configure
