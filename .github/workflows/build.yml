@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - .github/workflows/build.yml
+      - python-ios-cli.c
 
 concurrency:
   group: rootful-${{ github.ref }}
@@ -27,12 +28,18 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
       CPYTHON_VERSION: 3.14.7
       CPYTHON_SHA256: 3b48dac8fb59f62eaa67ac83c1eb12bda1b7a08406dd286e252c11a66be27f81
+      IPHONEOS_DEPLOYMENT_TARGET: "13.0"
       IOS_HOST: arm64-apple-ios
       IOS_MULTIARCH: arm64-iphoneos
       DEBIAN_ARCH: iphoneos-arm
-      DEB_NAME: python3.14_3.14.7-1_iphoneos-arm_rootful.deb
+      DEB_NAME: python3.14_3.14.7-2_iphoneos-arm_rootful.deb
 
     steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.0
+        with:
+          persist-credentials: false
+
       - name: Select toolchain
         run: |
           set -euxo pipefail
@@ -59,26 +66,39 @@ jobs:
             --with-ensurepip=no \
             LDFLAGS=-Wl,-rpath,/usr/lib
 
+      - name: Build command-line launcher
+        working-directory: Python-${{ env.CPYTHON_VERSION }}
+        run: |
+          set -euxo pipefail
+          prefix="cross-build/${IOS_HOST}/Apple/iOS/Frameworks/${IOS_MULTIARCH}"
+          compiler="$PWD/Apple/iOS/Resources/bin/${IOS_HOST}-clang"
+
+          test -x "$compiler"
+          test -f "$prefix/Python.framework/Headers/Python.h"
+          "$compiler" \
+            -std=c11 -Wall -Wextra -Werror \
+            -I "$prefix/Python.framework/Headers" \
+            -F "$prefix" \
+            "$GITHUB_WORKSPACE/python-ios-cli.c" \
+            -framework Python \
+            -Wl,-rpath,/usr/lib \
+            -o "$GITHUB_WORKSPACE/python3.14"
+
       - name: Assemble rootful filesystem
         working-directory: Python-${{ env.CPYTHON_VERSION }}
         run: |
           set -euxo pipefail
           prefix="cross-build/${IOS_HOST}/Apple/iOS/Frameworks/${IOS_MULTIARCH}"
-          executable="cross-build/${IOS_HOST}/python.exe"
           stage="$GITHUB_WORKSPACE/stage"
 
-          if test ! -f "$executable"; then
-            executable="cross-build/${IOS_HOST}/python"
-          fi
-
-          test -f "$executable"
+          test -f "$GITHUB_WORKSPACE/python3.14"
           test -f "$prefix/Python.framework/Python"
           test -f "$prefix/lib/python3.14/os.py"
           test -d "$prefix/lib/python3.14/lib-dynload"
 
           mkdir -p "$stage/DEBIAN" "$stage/usr/bin" "$stage/usr/lib" \
             "$stage/usr/share/doc/python3.14"
-          cp -p "$executable" "$stage/usr/bin/python3.14"
+          cp -p "$GITHUB_WORKSPACE/python3.14" "$stage/usr/bin/python3.14"
           ln -s python3.14 "$stage/usr/bin/python3"
           ditto "$prefix/Python.framework" "$stage/usr/lib/Python.framework"
           ditto "$prefix/lib/python3.14" "$stage/usr/lib/python3.14"
@@ -95,7 +115,7 @@ jobs:
           installed_size="$(du -sk "$stage/usr" | awk '{print $1}')"
           cat > "$stage/DEBIAN/control" <<EOF
           Package: python3.14
-          Version: ${CPYTHON_VERSION}-1
+          Version: ${CPYTHON_VERSION}-2
           Architecture: ${DEBIAN_ARCH}
           Maintainer: k1tty-xz <187893856+k1tty-xz@users.noreply.github.com>
           Installed-Size: ${installed_size}
@@ -117,6 +137,7 @@ jobs:
                 ' Command: /usr/bin/python3.14' \
                 ' Runtime: /usr/lib/python3.14' \
                 ' Target:  arm64 iOS (iphoneos-arm)' \
+                ' Console: standard terminal input and output' \
                 ' Note:    pip is not included in this build.' \
                 ' Rootless support will follow device testing.'
               ;;
@@ -171,6 +192,8 @@ jobs:
             grep -F '@rpath/Python.framework/Python'
           otool -l "$stage/usr/bin/python3.14" | grep -A2 LC_RPATH | \
             grep -F 'path /usr/lib'
+          nm -u "$stage/usr/bin/python3.14" | grep -F '_Py_RunMain'
+          nm -u "$stage/usr/bin/python3.14" | grep -F '_PyConfig_InitPythonConfig'
           test -f "$stage/usr/lib/python3.14/encodings/__init__.py"
           test "$(find "$stage/usr/lib/python3.14/lib-dynload" -name '*.so' | wc -l)" -gt 0
           test ! -e "$stage/usr/bin/pip3"
