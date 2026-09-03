@@ -28,7 +28,6 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
       CPYTHON_VERSION: 3.14.7
       CPYTHON_SHA256: 3b48dac8fb59f62eaa67ac83c1eb12bda1b7a08406dd286e252c11a66be27f81
-      IPHONEOS_DEPLOYMENT_TARGET: "13.0"
       IOS_HOST: arm64-apple-ios
       IOS_MULTIARCH: arm64-iphoneos
       DEBIAN_ARCH: iphoneos-arm
@@ -75,7 +74,7 @@ jobs:
 
           test -x "$compiler"
           test -f "$prefix/Python.framework/Headers/Python.h"
-          "$compiler" \
+          IPHONEOS_DEPLOYMENT_TARGET=13.0 "$compiler" \
             -std=c11 -Wall -Wextra -Werror \
             -I "$prefix/Python.framework/Headers" \
             -F "$prefix" \
