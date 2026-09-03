@@ -32,7 +32,7 @@ jobs:
       IOS_HOST: arm64-apple-ios
       IOS_MULTIARCH: arm64-iphoneos
       DEBIAN_ARCH: iphoneos-arm
-      DEB_NAME: python3.14_3.14.7-5_iphoneos-arm_rootful.deb
+      DEB_NAME: python3.14_3.14.7-6_iphoneos-arm_rootful.deb
 
     steps:
       - name: Check out source
@@ -125,7 +125,7 @@ jobs:
           installed_size="$(du -sk "$stage/usr" | awk '{print $1}')"
           cat > "$stage/DEBIAN/control" <<EOF
           Package: python3.14
-          Version: ${CPYTHON_VERSION}-5
+          Version: ${CPYTHON_VERSION}-6
           Architecture: ${DEBIAN_ARCH}
           Maintainer: k1tty-xz <187893856+k1tty-xz@users.noreply.github.com>
           Installed-Size: ${installed_size}
