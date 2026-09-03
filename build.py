@@ -63,6 +63,11 @@ def patch(source):
     )
     replace(
         source / "Lib/_ios_support.py",
+        "import sys\n",
+        "import os\nimport sys\n",
+    )
+    replace(
+        source / "Lib/_ios_support.py",
         """    system = objc.objc_msgSend(device_systemName, SEL_UTF8String).decode()
     release = objc.objc_msgSend(device_systemVersion, SEL_UTF8String).decode()
     model = objc.objc_msgSend(device_model, SEL_UTF8String).decode()
@@ -72,7 +77,10 @@ def patch(source):
         for value in (device_systemName, device_systemVersion, device_model)
     )
     if any(value is None for value in values):
-        return ("iOS", "", "", is_simulator)
+        release = os.popen(
+            "sysctl -n kern.osproductversion 2>/dev/null"
+        ).read().strip() or "13.0"
+        return ("iOS", release, "", is_simulator)
     return tuple(value.decode() for value in values) + (is_simulator,)
 """,
     )
