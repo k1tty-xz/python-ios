@@ -63,16 +63,18 @@ def patch(source):
     )
     replace(
         source / "Lib/_ios_support.py",
-        "    system = objc.objc_msgSend(device_systemName, SEL_UTF8String).decode()\n"
-        "    release = objc.objc_msgSend(device_systemVersion, SEL_UTF8String).decode()\n"
-        "    model = objc.objc_msgSend(device_model, SEL_UTF8String).decode()\n"
-        "    values = tuple(\n"
-        "        objc.objc_msgSend(value, SEL_UTF8String)\n"
-        "        for value in (device_systemName, device_systemVersion, device_model)\n"
-        "    )\n"
-        "    if any(value is None for value in values):\n"
-        "        return (\"iOS\", \"\", \"\", is_simulator)\n"
-        "    return tuple(value.decode() for value in values) + (is_simulator,)\n"
+        """    system = objc.objc_msgSend(device_systemName, SEL_UTF8String).decode()
+    release = objc.objc_msgSend(device_systemVersion, SEL_UTF8String).decode()
+    model = objc.objc_msgSend(device_model, SEL_UTF8String).decode()
+""",
+        """    values = tuple(
+        objc.objc_msgSend(value, SEL_UTF8String)
+        for value in (device_systemName, device_systemVersion, device_model)
+    )
+    if any(value is None for value in values):
+        return ("iOS", "", "", is_simulator)
+    return tuple(value.decode() for value in values) + (is_simulator,)
+""",
     )
     replace(
         configure,
