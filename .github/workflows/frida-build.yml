@@ -34,7 +34,7 @@ jobs:
           persist-credentials: false
 
       - name: Install packaging tools
-        run: brew install dpkg
+        run: brew install dpkg pkg-config
 
       - name: Get CPython target
         env:
@@ -86,10 +86,13 @@ jobs:
           mkdir -p "$devkit"
           tar -xf "$archive" --strip-components=1 -C "$devkit"
 
+          python3 -m venv "$work/venv"
+          "$work/venv/bin/python" -m pip install --disable-pip-version-check setuptools
+
           export PKG_CONFIG_PATH="$devkit/lib/pkgconfig"
           export CFLAGS="-I$CPYTHON_ROOT/usr/lib/Python.framework/Headers"
           export LDFLAGS="-F$CPYTHON_ROOT/usr/lib -Wl,-rpath,/usr/lib -framework Python"
-          export PYTHON="$(command -v python3)"
+          export PYTHON="$work/venv/bin/python"
 
           cd "$work/source"
           ./configure --host=ios-arm64 --without-prebuilds=toolchain,sdk:build,sdk:host
