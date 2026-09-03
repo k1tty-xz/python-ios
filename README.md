@@ -2,30 +2,31 @@
 
 [![Build](https://github.com/k1tty-xz/python-ios/actions/workflows/build.yml/badge.svg)](https://github.com/k1tty-xz/python-ios/actions/workflows/build.yml)
 
-A system-wide CPython 3.14 build for rootful jailbroken iOS devices.
+A system-wide CPython 3.14 for rootful jailbroken iOS devices.
 
 ## Status
 
-The rootful package builds on GitHub Actions for Apple's official `arm64`
-iOS device target. That target is used on arm64 and arm64e devices; device
-testing is still required.
+The package uses CPython's official iOS build and Apple's `arm64` device target,
+which runs on arm64 and arm64e devices. A small launcher uses CPython's public
+configuration API so the terminal keeps normal standard input, output, and
+error streams instead of redirecting them to the iOS system log.
 
-Rootless support and pip support are intentionally deferred until the rootful
-package has been tested.
+The new launcher still needs on-device testing. Rootless and pip support remain
+deferred until the rootful package passes those tests.
 
 ## Install
 
 Download the `.deb` from a successful workflow run and install it on the device:
 
 ```sh
-dpkg -i ./python3.14_3.14.7-1_iphoneos-arm_rootful.deb
+dpkg -i ./python3.14_3.14.7-2_iphoneos-arm_rootful.deb
 /usr/bin/python3.14 --version
 ```
 
 Quick standard-library check:
 
 ```sh
-/usr/bin/python3.14 -c 'import bz2, ctypes, lzma, sqlite3, ssl, zlib; print("ok")'
+/usr/bin/python3.14 -c 'import bz2, ctypes, lzma, sqlite3, ssl, zlib; print("OK")'
 ```
 
 ## Build
