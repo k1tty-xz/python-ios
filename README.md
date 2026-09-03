@@ -9,13 +9,12 @@ A system-wide CPython 3.14 for rootful jailbroken iOS devices.
 The package uses CPython's official iOS build and Apple's `arm64` device target,
 which runs on arm64 and arm64e devices. A small launcher uses CPython's public
 configuration API so the terminal keeps normal standard input, output, and
-error streams instead of redirecting them to the iOS system log.
+error streams instead of redirecting them to the iOS system log. The build
+also enables CPython's existing `_posixsubprocess` extension for jailbroken
+iOS, where the kernel permits `fork`/`exec`.
 
-The rootful launcher has been tested on a device: terminal input/output, redirection,
-and tracebacks work. The tested standard-library features pass. CPython disables
-process spawning on iOS, and this build has no native readline extension; both
-limitations are documented rather than bypassed with unsupported patches. Rootless
-and pip support remain deferred until they can be verified separately.
+The subprocess change still needs on-device testing. Rootless and pip support
+remain deferred until the rootful package passes those tests.
 
 ## Install
 
@@ -39,8 +38,11 @@ workflow downloads and verifies CPython 3.14.7, cross-compiles it with
 CPython’s official iOS build, validates the output, and uploads the `.deb`
 directly.
 
-The build follows CPython’s documented iOS limitations, including unavailable
-process-spawning and some platform-specific modules. It does not add custom patches or claim support beyond the behaviors tested.
+The build applies one minimal, tracked CPython source patch: it re-enables the
+official `_posixsubprocess` module and `subprocess` fork/exec path for this
+jailbreak-only target. This is not supported on stock iOS. Device behavior
+remains unverified until the package is installed and tested on jailbroken
+hardware.
 
 ## References
 
