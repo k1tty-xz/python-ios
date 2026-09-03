@@ -17,7 +17,8 @@ defaults:
 env:
   DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
   FRIDA_VERSION: 17.17.0
-  FRIDA_DEVKIT_SHA256: 699dcb9e76a6c7ef8f4b6f5088bb899f30ffd227a2913fe904f13ec83ac3593e
+  FRIDA_ARM64_DEVKIT_SHA256: 699dcb9e76a6c7ef8f4b6f5088bb899f30ffd227a2913fe904f13ec83ac3593e
+  FRIDA_ARM64E_DEVKIT_SHA256: 0c4b77e03dd6bd85f3f129eac6d593dfb410f6da445c10ca591907a429274585
   FRIDA_VALA_COMMIT: 172348fa9123ff4a95d541c5f9e56837434c4b6e
   CPYTHON_ARTIFACT_PATTERN: ^python3\.14_.+_iphoneos-arm_rootful\.deb$
   PACKAGE_VERSION: 17.17.0-1
@@ -77,47 +78,60 @@ jobs:
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/frida"
-          git clone --depth 1 --branch "$FRIDA_VERSION" --recurse-submodules \
-            https://github.com/frida/frida-python.git "$work/source"
-
-          devkit="$work/devkit"
-          archive="$work/devkit.tar.xz"
-          curl -fsSL --retry 5 -o "$archive" \
-            "https://github.com/frida/frida/releases/download/$FRIDA_VERSION/frida-core-devkit-$FRIDA_VERSION-ios-arm64.tar.xz"
-          printf '%s  %s\n' "$FRIDA_DEVKIT_SHA256" "$archive" | shasum -a 256 --check
-          mkdir -p "$devkit"
-          tar -xf "$archive" --strip-components=1 -C "$devkit"
-
           python3 -m venv "$work/venv"
           "$work/venv/bin/python" -m pip install --disable-pip-version-check setuptools
+
+          for arch in arm64 arm64e; do
+            git clone --depth 1 --branch "$FRIDA_VERSION" --recurse-submodules \
+              "https://github.com/frida/frida-python.git" "$work/source-$arch"
+          done
 
           vala="$work/vala"
           git clone --depth 1 https://github.com/frida/vala.git "$vala"
           git -C "$vala" fetch --depth 1 origin "$FRIDA_VALA_COMMIT"
           git -C "$vala" checkout --detach "$FRIDA_VALA_COMMIT"
-          "$work/venv/bin/python" "$work/source/releng/meson/meson.py" setup \
+          "$work/venv/bin/python" "$work/source-arm64/releng/meson/meson.py" setup \
             "$vala/build" "$vala" --prefix "$vala/install" -Dgir=disabled
-          "$work/venv/bin/python" "$work/source/releng/meson/meson.py" compile -C "$vala/build"
-          "$work/venv/bin/python" "$work/source/releng/meson/meson.py" install -C "$vala/build"
+          "$work/venv/bin/python" "$work/source-arm64/releng/meson/meson.py" compile -C "$vala/build"
+          "$work/venv/bin/python" "$work/source-arm64/releng/meson/meson.py" install -C "$vala/build"
 
           export PATH="$vala/install/bin:$work/venv/bin:$PATH"
-          export PKG_CONFIG_PATH="$devkit/lib/pkgconfig"
           export CFLAGS="-I$CPYTHON_ROOT/usr/lib/Python.framework/Headers"
           export LDFLAGS="-F$CPYTHON_ROOT/usr/lib -Wl,-rpath,/usr/lib -framework Python"
           export PYTHON="$work/venv/bin/python"
 
-          cd "$work/source"
-          ./configure --host=ios-arm64 --with-apple-min-os=ios=13.0 \
-            --without-prebuilds=toolchain,sdk:build,sdk:host \
-            -- -Dfrida-core:compat=disabled
-          make -j"$(sysctl -n hw.ncpu)"
+          for arch in arm64 arm64e; do
+            devkit="$work/devkit-$arch"
+            archive="$work/devkit-$arch.tar.xz"
+            curl -fsSL --retry 5 -o "$archive" \
+              "https://github.com/frida/frida/releases/download/$FRIDA_VERSION/frida-core-devkit-$FRIDA_VERSION-ios-$arch.tar.xz"
+            expected_sha="${FRIDA_$(printf '%s' "$arch" | tr '[:lower:]' '[:lower:]' | tr -d ' ' | tr '[:lower:]' '[:upper:]')_DEVKIT_SHA256}"
+            printf '%s  %s\n' "$expected_sha" "$archive" | shasum -a 256 --check
+            mkdir -p "$devkit"
+            tar -xf "$archive" --strip-components=1 -C "$devkit"
 
-          generated="$work/source/build/frida"
-          test -f "$generated/__init__.py"
-          test -f "$generated/aio.py"
-          extension="$(find "$generated" -maxdepth 1 -name '_frida*.so' -type f -print -quit)"
-          test -n "$extension"
-          printf 'FRIDA_GENERATED=%s\nFRIDA_EXTENSION=%s\n' "$generated" "$extension" >> "$GITHUB_ENV"
+            export PKG_CONFIG_PATH="$devkit/lib/pkgconfig"
+            cd "$work/source-$arch"
+            ./configure --host=ios-$arch --with-apple-min-os=ios=13.0 \
+              --without-prebuilds=toolchain,sdk:build,sdk:host \
+              -- -Dfrida-core:compat=disabled
+            make -j"$(sysctl -n hw.ncpu)"
+
+            generated="$work/source-$arch/build/frida"
+            test -f "$generated/__init__.py"
+            test -f "$generated/aio.py"
+            extension="$(find "$generated" -maxdepth 1 -name '_frida*.so' -type f -print -quit)"
+            test -n "$extension"
+            cp -p "$extension" "$work/_frida-$arch.abi3.so"
+            if [ "$arch" = arm64 ]; then
+              printf 'FRIDA_GENERATED=%s\n' "$generated" >> "$GITHUB_ENV"
+            fi
+          done
+
+          xcrun lipo -create \
+            "$work/_frida-arm64.abi3.so" "$work/_frida-arm64e.abi3.so" \
+            -output "$work/_frida.abi3.so"
+          printf 'FRIDA_EXTENSION=%s\n' "$work/_frida.abi3.so" >> "$GITHUB_ENV"
 
       - name: Assemble package
         run: |
@@ -181,7 +195,7 @@ jobs:
           root="$RUNNER_TEMP/verify"
           dpkg-deb -x "$package" "$root"
           extension="$(find "$root/usr/lib/python3.14/site-packages/frida" -name '_frida*.so' -type f -print -quit)"
-          xcrun lipo "$extension" -verify_arch arm64
+          xcrun lipo "$extension" -verify_arch arm64 arm64e
           xcrun vtool -show-build "$extension" | tee "$RUNNER_TEMP/frida-build-info.txt" | grep -F 'platform IOS'
           codesign --verify --strict "$extension"
           test "$(dpkg-deb --field "$package" Package)" = python3.14-frida
