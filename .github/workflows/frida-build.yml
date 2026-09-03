@@ -18,6 +18,7 @@ env:
   DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
   FRIDA_VERSION: 17.17.0
   FRIDA_DEVKIT_SHA256: 699dcb9e76a6c7ef8f4b6f5088bb899f30ffd227a2913fe904f13ec83ac3593e
+  FRIDA_VALA_COMMIT: 172348fa9123ff4a95d541c5f9e56837434c4b6e
   CPYTHON_ARTIFACT_PATTERN: ^python3\.14_.+_iphoneos-arm_rootful\.deb$
   PACKAGE_VERSION: 17.17.0-1
   DEB_NAME: python3.14-frida_17.17.0-1_iphoneos-arm64.deb
@@ -89,7 +90,16 @@ jobs:
           python3 -m venv "$work/venv"
           "$work/venv/bin/python" -m pip install --disable-pip-version-check setuptools
 
-          export PATH="$work/venv/bin:$PATH"
+          vala="$work/vala"
+          git clone --depth 1 https://github.com/frida/vala.git "$vala"
+          git -C "$vala" fetch --depth 1 origin "$FRIDA_VALA_COMMIT"
+          git -C "$vala" checkout --detach "$FRIDA_VALA_COMMIT"
+          "$work/venv/bin/python" "$work/source/releng/meson/meson.py" setup \
+            "$vala/build" "$vala" --prefix "$vala/install" -Dgir=disabled
+          "$work/venv/bin/python" "$work/source/releng/meson/meson.py" compile -C "$vala/build"
+          "$work/venv/bin/python" "$work/source/releng/meson/meson.py" install -C "$vala/build"
+
+          export PATH="$vala/install/bin:$work/venv/bin:$PATH"
           export PKG_CONFIG_PATH="$devkit/lib/pkgconfig"
           export CFLAGS="-I$CPYTHON_ROOT/usr/lib/Python.framework/Headers"
           export LDFLAGS="-F$CPYTHON_ROOT/usr/lib -Wl,-rpath,/usr/lib -framework Python"
