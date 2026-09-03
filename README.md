@@ -11,8 +11,9 @@ which runs on arm64 and arm64e devices. A small launcher uses CPython's public
 configuration API so the terminal keeps normal standard input, output, and
 error streams instead of redirecting them to the iOS system log.
 
-The new launcher still needs on-device testing. Rootless and pip support remain
-deferred until the rootful package passes those tests.
+The rootful launcher has been tested on a device: terminal input/output, redirection,
+and tracebacks work. Rootless and pip support remain deferred until they can be
+verified separately.
 
 ## Install
 
@@ -37,8 +38,7 @@ CPython’s official iOS build, validates the output, and uploads the `.deb`
 directly.
 
 The build follows CPython’s documented iOS limitations, including unavailable
-process-spawning and some platform-specific modules. It does not add custom
-patches or claim device compatibility before testing.
+process-spawning and some platform-specific modules. It does not add custom patches or claim support beyond the behaviors tested.
 
 ## References
 
