@@ -13,16 +13,18 @@ error streams instead of redirecting them to the iOS system log. The build
 also enables CPython's existing `_posixsubprocess` extension for jailbroken
 iOS, where the kernel permits `fork`/`exec`.
 
-The subprocess change still needs on-device testing. Rootless and pip support
-remain deferred until the rootful package passes those tests.
+The subprocess change is included and the pip bootstrap is being tested on the
+rootful device. Rootless support remains deferred until the rootful package
+passes those tests.
 
 ## Install
 
 Download the `.deb` from a successful workflow run and install it on the device:
 
 ```sh
-dpkg -i ./python3.14_3.14.7-3_iphoneos-arm_rootful.deb
+dpkg -i ./python3.14_3.14.7-4_iphoneos-arm_rootful.deb
 /usr/bin/python3.14 --version
+/usr/bin/python3 -m pip --version
 ```
 
 Quick standard-library check:
