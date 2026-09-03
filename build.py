@@ -62,6 +62,19 @@ def patch(source):
         "#define USE_SYSTEM_LOGGER_DEFAULT 0;\n",
     )
     replace(
+        source / "Lib/_ios_support.py",
+        "    system = objc.objc_msgSend(device_systemName, SEL_UTF8String).decode()\n"
+        "    release = objc.objc_msgSend(device_systemVersion, SEL_UTF8String).decode()\n"
+        "    model = objc.objc_msgSend(device_model, SEL_UTF8String).decode()\n"
+        "    values = tuple(\n"
+        "        objc.objc_msgSend(value, SEL_UTF8String)\n"
+        "        for value in (device_systemName, device_systemVersion, device_model)\n"
+        "    )\n"
+        "    if any(value is None for value in values):\n"
+        "        return (\"iOS\", \"\", \"\", is_simulator)\n"
+        "    return tuple(value.decode() for value in values) + (is_simulator,)\n"
+    )
+    replace(
         configure,
         '\t\t\tiOS) as_fn_error $? "iOS builds must use --enable-framework" "$LINENO" 5 ;;\n',
         "",
