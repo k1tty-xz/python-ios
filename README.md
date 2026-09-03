@@ -13,9 +13,8 @@ error streams instead of redirecting them to the iOS system log. The build
 also enables CPython's existing `_posixsubprocess` extension for jailbroken
 iOS, where the kernel permits `fork`/`exec`.
 
-The subprocess change is included and the pip bootstrap is being tested on the
-rootful device. Rootless support remains deferred until the rootful package
-passes those tests.
+Rootful device tests confirm normal console I/O, subprocess execution, and
+pip installation. Rootless support remains deferred.
 
 ## Install
 
