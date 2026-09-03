@@ -206,9 +206,9 @@ jobs:
           nm -u "$stage/usr/bin/python3.14" | grep -F '_PyConfig_InitPythonConfig'
           test -f "$stage/usr/lib/python3.14/encodings/__init__.py"
           test "$(find "$stage/usr/lib/python3.14/lib-dynload" -name '*.so' | wc -l)" -gt 0
-          test -f "$stage/usr/lib/python3.14/pip/__main__.py"
-          test -f "$stage/usr/lib/python3.14/pip/__init__.py"
-          test "$(find "$stage/usr/lib/python3.14" -maxdepth 1 -type d -name 'pip-*.dist-info' | wc -l)" -eq 1
+          test -f "$stage/usr/lib/python3.14/site-packages/pip/__main__.py"
+          test -f "$stage/usr/lib/python3.14/site-packages/pip/__init__.py"
+          test "$(find "$stage/usr/lib/python3.14/site-packages" -maxdepth 1 -type d -name 'pip-*.dist-info' | wc -l)" -eq 1
           test -x "$stage/DEBIAN/postinst"
           test -x "$stage/DEBIAN/postrm"
           sh -n "$stage/DEBIAN/postinst"
