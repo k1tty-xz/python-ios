@@ -22,7 +22,7 @@ passes those tests.
 Download the `.deb` from a successful workflow run and install it on the device:
 
 ```sh
-dpkg -i ./python3.14_3.14.7-5_iphoneos-arm_rootful.deb
+dpkg -i ./python3.14_3.14.7-6_iphoneos-arm_rootful.deb
 /usr/bin/python3.14 --version
 /usr/bin/python3 -m pip --version
 ```
