@@ -95,7 +95,6 @@ jobs:
 
           export PATH="$vala/install/bin:$work/venv/bin:$PATH"
           export CFLAGS="-I$CPYTHON_ROOT/usr/lib/Python.framework/Headers"
-          export LDFLAGS="-F$CPYTHON_ROOT/usr/lib -Wl,-rpath,/usr/lib -framework Python"
           export PYTHON="$work/venv/bin/python"
 
           for arch in arm64 arm64e; do
