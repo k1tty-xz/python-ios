@@ -17,8 +17,6 @@ defaults:
 env:
   DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
   FRIDA_VERSION: 17.17.0
-  FRIDA_ARM64_DEVKIT_SHA256: 699dcb9e76a6c7ef8f4b6f5088bb899f30ffd227a2913fe904f13ec83ac3593e
-  FRIDA_ARM64E_DEVKIT_SHA256: 0c4b77e03dd6bd85f3f129eac6d593dfb410f6da445c10ca591907a429274585
   FRIDA_VALA_COMMIT: 172348fa9123ff4a95d541c5f9e56837434c4b6e
   CPYTHON_ARTIFACT_PATTERN: ^python3\.14_.+_iphoneos-arm_rootful\.deb$
   PACKAGE_VERSION: 17.17.0-1
@@ -74,7 +72,7 @@ jobs:
           test -f "$work/root/usr/lib/Python.framework/Headers/Python.h"
           printf 'CPYTHON_ROOT=%s\n' "$work/root" >> "$GITHUB_ENV"
 
-      - name: Build Frida Python binding
+      - name: Build Frida Python binding from official source
         run: |
           set -euo pipefail
           work="$RUNNER_TEMP/frida"
@@ -101,20 +99,6 @@ jobs:
           export PYTHON="$work/venv/bin/python"
 
           for arch in arm64 arm64e; do
-            devkit="$work/devkit-$arch"
-            archive="$work/devkit-$arch.tar.xz"
-            curl -fsSL --retry 5 -o "$archive" \
-              "https://github.com/frida/frida/releases/download/$FRIDA_VERSION/frida-core-devkit-$FRIDA_VERSION-ios-$arch.tar.xz"
-            if [ "$arch" = arm64 ]; then
-              expected_sha="$FRIDA_ARM64_DEVKIT_SHA256"
-            else
-              expected_sha="$FRIDA_ARM64E_DEVKIT_SHA256"
-            fi
-            printf '%s  %s\n' "$expected_sha" "$archive" | shasum -a 256 --check
-            mkdir -p "$devkit"
-            tar -xf "$archive" --strip-components=1 -C "$devkit"
-
-            export PKG_CONFIG_PATH="$devkit/lib/pkgconfig"
             cd "$work/source-$arch"
             ./configure --host=ios-$arch --with-apple-min-os=ios=13.0 \
               --without-prebuilds=toolchain,sdk:build,sdk:host \
