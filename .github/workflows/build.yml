@@ -1,0 +1,40 @@
+name: Build Python for jailbroken iOS
+
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-15-intel
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install packaging tools
+        run: brew install dpkg ldid
+      - name: Build
+        run: bash build.sh
+      - name: Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-rootful-arm64
+          path: dist/*
+          if-no-files-found: error
+      - name: Upload diagnostic logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            .build/**/config.log
+            .build/**/pyconfig.h
+            .build/**/Makefile
