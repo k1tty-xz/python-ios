@@ -37,6 +37,9 @@ def main():
                  "select", "fcntl", "termios", "resource", "pwd", "grp"):
         importlib.import_module(name)
     print("PASS native standard-library imports", flush=True)
+    import _native_check
+    assert _native_check.answer() == 42
+    print("PASS external C extension import", flush=True)
 
     payload = b"Python on a jailbroken iPhone\x00" * 1000
     for codec in (zlib, bz2, lzma):

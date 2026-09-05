@@ -9,7 +9,7 @@ jobs="$(sysctl -n hw.ncpu)"
 version=3.14.7
 
 [[ "$(uname -s)" == Darwin ]] || { echo 'Build on macOS with Xcode (GitHub Actions).'; exit 1; }
-[[ ! -e "$work" ]] || { echo 'Use a clean checkout for a fresh build.'; exit 1; }
+[[ ! -e "$work/target" ]] || { echo 'Use a clean checkout for a fresh build.'; exit 1; }
 mkdir -p "$work" "$stage" "$deps" dist
 while read -r sha url; do
     file="$work/${url##*/}"
@@ -19,11 +19,13 @@ while read -r sha url; do
 done < sources.lock
 
 source="$work/Python-$version"
+if [[ ! -x "$work/host/bin/python3.14" ]]; then
 mkdir "$work/host-build"
 cd "$work/host-build"
 "$source/configure" --prefix="$work/host" --without-ensurepip --disable-test-modules
 make -j"$jobs"
 make install
+fi
 host_python="$work/host/bin/python3.14"
 
 export SDKROOT="$(xcrun --sdk iphoneos --show-sdk-path)"
@@ -33,11 +35,13 @@ export CXX="$(xcrun --sdk iphoneos --find clang++)"
 export AR="$(xcrun --sdk iphoneos --find ar)"
 export RANLIB="$(xcrun --sdk iphoneos --find ranlib)"
 export CFLAGS="-O2 -fPIC -target arm64-apple-ios14.0 -isysroot $SDKROOT"
+export CXXFLAGS="$CFLAGS"
 export CPPFLAGS="-I$deps/include"
 export LDFLAGS="-target arm64-apple-ios14.0 -isysroot $SDKROOT -L$deps/lib"
 export PKG_CONFIG_LIBDIR="$deps/lib/pkgconfig"
 unset MACOSX_DEPLOYMENT_TARGET
 
+if [[ ! -f "$deps/.complete" ]]; then
 cd "$work/openssl-3.5.8"
 ./Configure ios64-xcrun no-shared no-tests no-apps --prefix="$deps" --openssldir=/usr/lib/python3.14/ssl
 make -j"$jobs"
@@ -58,6 +62,8 @@ cd "$work/sqlite-autoconf-3530400"
 "$CC" $CFLAGS -DSQLITE_ENABLE_COLUMN_METADATA -DSQLITE_ENABLE_FTS5 -DSQLITE_ENABLE_RTREE -c sqlite3.c -o sqlite3.o
 "$AR" rcs "$deps/lib/libsqlite3.a" sqlite3.o
 cp sqlite3.h sqlite3ext.h "$deps/include/"
+touch "$deps/.complete"
+fi
 
 "$host_python" "$root/patch.py" "$source"
 mkdir "$work/target"
@@ -99,6 +105,10 @@ cp "$work/openssl-3.5.8/LICENSE.txt" "$stage/usr/share/doc/python3.14/LICENSE.op
 cp "$work/libffi-3.7.1/LICENSE" "$stage/usr/share/doc/python3.14/LICENSE.libffi"
 cp "$work/xz-5.8.3/COPYING" "$stage/usr/share/doc/python3.14/LICENSE.xz"
 cp sources.lock "$stage/usr/share/doc/python3.14/"
+
+# This module lives outside lib-dynload and exercises third-party imports.
+"$CC" $CFLAGS -bundle -undefined dynamic_lookup -I"$stage/usr/include/python3.14" \
+    native_check.c -o "$stage/usr/share/doc/python3.14/_native_check.so"
 
 find "$stage/usr" -type f \( -name '*.dylib' -o -name '*.so' -o -name 'python3.14' \) -print0 |
 while IFS= read -r -d '' file; do

@@ -21,8 +21,25 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install packaging tools
         run: brew install dpkg ldid
+      - name: Identify SDK
+        id: sdk
+        run: echo "version=$(xcrun --sdk iphoneos --show-sdk-version)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache/restore@v4
+        id: cache
+        with:
+          path: |
+            .build/host
+            .build/deps
+          key: ios14-v1-${{ runner.arch }}-${{ steps.sdk.outputs.version }}-${{ hashFiles('sources.lock') }}
       - name: Build
         run: bash build.sh
+      - uses: actions/cache/save@v4
+        if: always() && steps.cache.outputs.cache-hit != 'true' && hashFiles('.build/deps/.complete') != ''
+        with:
+          path: |
+            .build/host
+            .build/deps
+          key: ${{ steps.cache.outputs.cache-primary-key }}
       - name: Upload package
         uses: actions/upload-artifact@v4
         with:
@@ -34,6 +51,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: build-logs
+          include-hidden-files: true
           path: |
             .build/**/config.log
             .build/**/pyconfig.h
