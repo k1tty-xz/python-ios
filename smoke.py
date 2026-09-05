@@ -18,6 +18,7 @@ import subprocess
 import sys
 import sysconfig
 import tempfile
+import time
 import urllib.request
 import venv
 import zlib
@@ -50,6 +51,21 @@ def main():
         db.execute("INSERT INTO sample VALUES (?)", (payload,))
         assert db.execute("SELECT value FROM sample").fetchone()[0] == payload
     print("PASS compression, hashing and SQLite", flush=True)
+    previous_tz = os.environ.get("TZ")
+    try:
+        os.environ["TZ"] = "UTC+0"
+        time.tzset()
+        assert time.localtime(0).tm_hour == 0
+        os.environ["TZ"] = "UTC-2"
+        time.tzset()
+        assert time.localtime(0).tm_hour == 2
+    finally:
+        if previous_tz is None:
+            os.environ.pop("TZ", None)
+        else:
+            os.environ["TZ"] = previous_tz
+        time.tzset()
+    print("PASS timezone switching", flush=True)
 
     libc = ctypes.CDLL(None)
     libc.getpid.restype = ctypes.c_int

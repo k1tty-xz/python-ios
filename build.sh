@@ -36,7 +36,7 @@ export AR="$(xcrun --sdk iphoneos --find ar)"
 export RANLIB="$(xcrun --sdk iphoneos --find ranlib)"
 export CFLAGS="-O2 -fPIC -target arm64-apple-ios14.0 -isysroot $SDKROOT"
 export CXXFLAGS="$CFLAGS"
-export CPPFLAGS="-I$deps/include"
+export CPPFLAGS="-target arm64-apple-ios14.0 -isysroot $SDKROOT -I$deps/include"
 export LDFLAGS="-target arm64-apple-ios14.0 -isysroot $SDKROOT -L$deps/lib"
 export PKG_CONFIG_LIBDIR="$deps/lib/pkgconfig"
 unset MACOSX_DEPLOYMENT_TARGET
@@ -78,7 +78,8 @@ export CPPFLAGS="$CPPFLAGS -include $root/jailbreak.h"
     LIBSQLITE3_CFLAGS="-I$deps/include" LIBSQLITE3_LIBS="$deps/lib/libsqlite3.a" \
     py_cv_module__scproxy=n/a py_cv_module__tkinter=n/a \
     ac_cv_file__dev_ptmx=no ac_cv_file__dev_ptc=no \
-    ac_cv_func_mkfifoat=no ac_cv_func_mknodat=no ac_cv_func_clock_settime=no
+    ac_cv_func_mkfifoat=no ac_cv_func_mknodat=no ac_cv_func_clock_settime=no \
+    ac_cv_working_tzset=yes
 
 # Configure as POSIX Darwin, but report iOS to packaging tools so pip never
 # installs macOS wheels. The compiler already detects arm64-iphoneos MULTIARCH.

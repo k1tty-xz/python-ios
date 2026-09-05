@@ -18,13 +18,13 @@ jobs:
     runs-on: macos-15-intel
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
       - name: Install packaging tools
         run: brew install dpkg ldid
       - name: Identify SDK
         id: sdk
         run: echo "version=$(xcrun --sdk iphoneos --show-sdk-version)" >> "$GITHUB_OUTPUT"
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@v6.1.0
         id: cache
         with:
           path: |
@@ -33,7 +33,7 @@ jobs:
           key: ios14-v1-${{ runner.arch }}-${{ steps.sdk.outputs.version }}-${{ hashFiles('sources.lock') }}
       - name: Build
         run: bash build.sh
-      - uses: actions/cache/save@v4
+      - uses: actions/cache/save@v6.1.0
         if: always() && steps.cache.outputs.cache-hit != 'true' && hashFiles('.build/deps/.complete') != ''
         with:
           path: |
@@ -41,14 +41,14 @@ jobs:
             .build/deps
           key: ${{ steps.cache.outputs.cache-primary-key }}
       - name: Upload package
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: python-rootful-arm64
           path: dist/*
           if-no-files-found: error
       - name: Upload diagnostic logs
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.1
         with:
           name: build-logs
           include-hidden-files: true
