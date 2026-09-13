@@ -1,4 +1,4 @@
-name: Build static CPython for iOS
+name: Build CPython framework for iOS
 
 on:
   push:
@@ -14,9 +14,9 @@ jobs:
       - name: Build package
         run: ./scripts/build.sh
       - name: Verify package
-        run: ./scripts/test.sh dist/python-ios-static_3.14.7-1_iphoneos-arm64.deb
+        run: ./scripts/test.sh dist/python-ios-framework_3.14.7-1_iphoneos-arm64.deb
       - name: Upload package
         uses: actions/upload-artifact@v4
         with:
-          name: python-ios-static
+          name: python-ios-framework
           path: dist/*.deb

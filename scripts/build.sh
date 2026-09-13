@@ -7,6 +7,8 @@ SOURCE_SHA256=$(tr -d '[:space:]' < "$ROOT_DIR/CPYTHON_SHA256")
 WORK_DIR=${WORK_DIR:-"$(mktemp -d "${TMPDIR:-/tmp}/python-ios-build.XXXXXX")"}
 OUTPUT_DIR=${OUTPUT_DIR:-"$ROOT_DIR/dist"}
 DEBUG_BUILD=${DEBUG_BUILD:-1}
+INSTALL_PREFIX=/usr/local
+FRAMEWORK_PREFIX="$INSTALL_PREFIX/Frameworks"
 SOURCE_ARCHIVE="$WORK_DIR/Python-$VERSION.tar.xz"
 SOURCE_DIR="$WORK_DIR/Python-$VERSION"
 TARGET_DIR="$WORK_DIR/target"
@@ -70,53 +72,6 @@ printf '%s  %s\n' "$SOURCE_SHA256" "$SOURCE_ARCHIVE" | shasum -a 256 -c -
 
 tar -xJf "$SOURCE_ARCHIVE" -C "$WORK_DIR"
 
-printf 'Adapting CPython for a rootful no-framework iOS build...\n'
-python3 - "$SOURCE_DIR/configure" "$SOURCE_DIR/configure.ac" <<'PY'
-from pathlib import Path
-import re
-import sys
-
-guard_patterns = {
-    "configure": re.compile(
-        r'(?m)^([ \t]*)iOS\) as_fn_error \$\? "iOS builds must use --enable-framework" '
-        r'"\$LINENO" 5 ;;\n([ \t]*)\*\)'
-    ),
-    "configure.ac": re.compile(
-        r'(?m)^([ \t]*)iOS\) AC_MSG_ERROR\(\[iOS builds must use --enable-framework\]\) ;;\n'
-        r'([ \t]*)\*\)'
-    ),
-}
-
-link_pattern = re.compile(
-    r'''(?m)^([ \t]*)elif test \$ac_sys_system = "iOS"; then\n'''
-    r'''([ \t]*)LINKFORSHARED="-Wl,-stack_size,\$stack_size \$LINKFORSHARED "'\$\(PYTHONFRAMEWORKDIR\)/\$\(PYTHONFRAMEWORK\)'\n'''
-    r'''([ \t]*)fi'''
-)
-link_replacement = (
-    r'\1elif test $ac_sys_system = "iOS"; then\n'
-    r'\2LINKFORSHARED="-Wl,-stack_size,$stack_size $LINKFORSHARED"\n'
-    r'\2if test "$enable_framework"; then\n'
-    r'''\2    LINKFORSHARED="$LINKFORSHARED "'$(PYTHONFRAMEWORKDIR)/$(PYTHONFRAMEWORK)'\n'''
-    r'\2fi\n'
-    r'\3fi'
-)
-
-for name in sys.argv[1:]:
-    path = Path(name)
-    text = path.read_text(encoding="utf-8")
-
-    guard = guard_patterns[path.name]
-    text, count = guard.subn(r'\1iOS|*)', text)
-    if count != 2:
-        raise SystemExit(f"expected two iOS framework guards in {path}, found {count}")
-
-    text, count = link_pattern.subn(link_replacement, text)
-    if count != 1:
-        raise SystemExit(f"expected one iOS link rule in {path}, found {count}")
-
-    path.write_text(text, encoding="utf-8")
-PY
-
 printf 'Building the temporary host Python and fetching Apple dependencies...\n'
 (
     cd "$SOURCE_DIR"
@@ -166,24 +121,24 @@ fi
 
 mkdir -p "$TARGET_DIR" "$PACKAGE_ROOT" "$DEB_DIR"
 
-printf 'Configuring static CPython...\n'
+printf 'Configuring CPython with Python.framework...\n'
 (
     cd "$TARGET_DIR"
     export PATH="$SOURCE_DIR/Apple/iOS/Resources/bin:$DEPS_PREFIX/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin"
     debug "target configure PATH: $PATH"
     if [ "$DEBUG_BUILD" = 1 ]; then set -x; fi
     if "$SOURCE_DIR/configure" \
-        --prefix=/usr/local \
         --host=arm64-apple-ios \
         --build="$(uname -m)-apple-darwin" \
         --with-build-python="$BUILD_PYTHON" \
-        --disable-framework \
+        --enable-framework="$FRAMEWORK_PREFIX" \
         --disable-test-modules \
         --with-ensurepip=no \
         --with-system-libmpdec \
         --with-openssl="$DEPS_PREFIX" \
         --with-openssl-rpath=no \
         MODULE_BUILDTYPE=static \
+        LDFLAGS="-Wl,-rpath,$FRAMEWORK_PREFIX" \
         LIBMPDEC_CFLAGS="-I$DEPS_PREFIX/include" \
         LIBMPDEC_LIBS="-L$DEPS_PREFIX/lib -lmpdec" \
         LIBLZMA_CFLAGS="-I$DEPS_PREFIX/include" \
@@ -196,7 +151,7 @@ printf 'Configuring static CPython...\n'
     else
         status=$?
         if [ "$DEBUG_BUILD" = 1 ]; then set +x; fi
-        printf 'error: static CPython configure failed (exit %s)\n' "$status" >&2
+        printf 'error: CPython framework configure failed (exit %s)\n' "$status" >&2
         dump_config_logs
         exit "$status"
     fi
@@ -211,9 +166,14 @@ printf 'Building CPython with %s jobs...\n' "$JOBS"
     make install DESTDIR="$PACKAGE_ROOT" ENSUREPIP=no
 )
 
-PREFIX="$PACKAGE_ROOT/usr/local"
+PREFIX="$PACKAGE_ROOT$INSTALL_PREFIX"
+PYTHON_FRAMEWORK="$PACKAGE_ROOT$FRAMEWORK_PREFIX/Python.framework"
 PYTHON_BIN="$PREFIX/bin/python3.14"
-[ -x "$PYTHON_BIN" ] || die "static Python executable was not installed: $PYTHON_BIN"
+[ -d "$PYTHON_FRAMEWORK" ] || die "Python.framework was not installed: $PYTHON_FRAMEWORK"
+[ -f "$PYTHON_FRAMEWORK/Python" ] || die "Python.framework binary was not installed: $PYTHON_FRAMEWORK/Python"
+[ -x "$TARGET_DIR/python" ] || die "target Python executable was not built: $TARGET_DIR/python"
+mkdir -p "$PREFIX/bin"
+cp "$TARGET_DIR/python" "$PYTHON_BIN"
 
 # The bundled pip wheel is installed by the host interpreter so the target
 # executable is never run during the cross-build.
@@ -224,7 +184,7 @@ PYTHONPATH="$1" "$BUILD_PYTHON" -m pip install \
     --no-cache-dir \
     --no-index \
     --no-warn-script-location \
-    --prefix=/usr/local \
+    --prefix="$FRAMEWORK_PREFIX" \
     --root="$PACKAGE_ROOT" \
     pip
 
@@ -236,22 +196,17 @@ chmod 0755 "$PREFIX/bin/pip"
 ln -sf pip "$PREFIX/bin/pip3"
 ln -sf pip "$PREFIX/bin/pip3.14"
 
-if find "$PREFIX" \( -type f -o -type l \) \( -name '*.so' -o -name '*.dylib' \) -print -quit | grep -q .; then
-    die "static package unexpectedly contains a dynamic runtime library"
-fi
-if find "$PREFIX" -type d -name 'Python.framework' -print -quit | grep -q .; then
-    die "static package unexpectedly contains Python.framework"
-fi
-
 strip -x "$PYTHON_BIN"
+strip -x "$PYTHON_FRAMEWORK/Python"
 codesign --force --sign - "$PYTHON_BIN"
+codesign --force --sign - --deep "$PYTHON_FRAMEWORK"
 
 mkdir -p "$DEB_DIR/DEBIAN"
 sed "s/^Version: .*/Version: $VERSION-1/" "$ROOT_DIR/packaging/control.in" \
     > "$DEB_DIR/DEBIAN/control"
 cp -R "$PACKAGE_ROOT"/. "$DEB_DIR"/
 
-PACKAGE_PATH="$OUTPUT_DIR/python-ios-static_${VERSION}-1_iphoneos-arm64.deb"
+PACKAGE_PATH="$OUTPUT_DIR/python-ios-framework_${VERSION}-1_iphoneos-arm64.deb"
 rm -f "$PACKAGE_PATH"
 dpkg-deb --build --root-owner-group "$DEB_DIR" "$PACKAGE_PATH"
 

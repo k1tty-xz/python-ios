@@ -19,34 +19,26 @@ dpkg-deb --extract "$PACKAGE" "$WORK_DIR/root"
 
 ROOT="$WORK_DIR/root"
 PREFIX="$ROOT/usr/local"
+FRAMEWORK_ROOT="$PREFIX/Frameworks"
+PYTHON_FRAMEWORK="$FRAMEWORK_ROOT/Python.framework"
 PYTHON_BIN="$PREFIX/bin/python3.14"
 
 [ -x "$PYTHON_BIN" ]
 [ -L "$PREFIX/bin/python3" ]
 [ -L "$PREFIX/bin/python" ]
-[ -d "$PREFIX/lib/python3.14" ]
-
-[ ! -e "$PREFIX/Frameworks/Python.framework" ]
-[ ! -e "$PREFIX/lib/Python.framework" ]
-[ ! -e "$PREFIX/lib/libpython3.14.dylib" ]
-
-if find "$PREFIX" \( -type f -o -type l \) \( -name '*.so' -o -name '*.dylib' \) -print -quit | grep -q .; then
-    printf 'error: dynamic runtime library found in package\n' >&2
-    exit 1
-fi
-if find "$PREFIX" -type d -name 'Python.framework' -print -quit | grep -q .; then
-    printf 'error: Python.framework found in package\n' >&2
-    exit 1
-fi
-
-find "$PREFIX/lib" -type f -name 'libpython*.a' -print -quit | grep -q .
+[ -d "$FRAMEWORK_ROOT/lib/python3.14" ]
+[ -d "$PYTHON_FRAMEWORK" ]
+[ -f "$PYTHON_FRAMEWORK/Python" ]
+[ -f "$PYTHON_FRAMEWORK/Info.plist" ]
 
 command -v lipo >/dev/null 2>&1
 lipo -verify_arch arm64 "$PYTHON_BIN"
+lipo -verify_arch arm64 "$PYTHON_FRAMEWORK/Python"
 codesign --verify --deep --strict "$PYTHON_BIN"
-if otool -L "$PYTHON_BIN" | grep -E 'Python\.framework|libpython.*\.dylib' >/dev/null; then
-    printf 'error: dynamic Python library dependency found in executable\n' >&2
+codesign --verify --deep --strict "$PYTHON_FRAMEWORK"
+if ! otool -L "$PYTHON_BIN" | grep -E 'Python\.framework/Python' >/dev/null; then
+    printf 'error: Python.framework dependency missing from executable\n' >&2
     exit 1
 fi
 
-printf 'Static package checks passed: %s\n' "$PACKAGE"
+printf 'Framework package checks passed: %s\n' "$PACKAGE"

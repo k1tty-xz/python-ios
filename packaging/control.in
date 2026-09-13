@@ -1,11 +1,10 @@
-Package: com.python.ios.static
-Name: Python 3.14 Static
+Package: com.python.ios.framework
+Name: Python 3.14 Framework
 Version: 3.14.7-1
 Architecture: iphoneos-arm64
-Description: Static CPython runtime for rootful iOS
- A self-contained arm64 CPython executable and standard library.
- This package intentionally does not ship Python.framework or runtime
- extension modules.
+Description: CPython 3.14 framework for rootful iOS
+ An arm64 CPython runtime packaged with Python.framework and its standard
+ library for use on a rootful iOS device.
 Section: Interpreters
 Priority: optional
 Maintainer: Python iOS contributors
