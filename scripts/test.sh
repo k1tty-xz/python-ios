@@ -32,8 +32,8 @@ PYTHON_BIN="$PREFIX/bin/python3.14"
 [ -f "$PYTHON_FRAMEWORK/Info.plist" ]
 
 command -v lipo >/dev/null 2>&1
-lipo -verify_arch arm64 "$PYTHON_BIN"
-lipo -verify_arch arm64 "$PYTHON_FRAMEWORK/Python"
+lipo "$PYTHON_BIN" -verify_arch arm64
+lipo "$PYTHON_FRAMEWORK/Python" -verify_arch arm64
 codesign --verify --deep --strict "$PYTHON_BIN"
 codesign --verify --deep --strict "$PYTHON_FRAMEWORK"
 if ! otool -L "$PYTHON_BIN" | grep -E 'Python\.framework/Python' >/dev/null; then
