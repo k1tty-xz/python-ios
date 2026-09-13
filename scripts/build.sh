@@ -97,24 +97,8 @@ printf 'Building the temporary host Python and fetching Apple dependencies...\n'
     if [ "$DEBUG_BUILD" = 1 ]; then set +x; fi
 )
 
-BUILD_PYTHON="$SOURCE_DIR/cross-build/build/python"
-if [ ! -f "$BUILD_PYTHON" ]; then
-    BUILD_PYTHON="$SOURCE_DIR/cross-build/build/python.exe"
-fi
+BUILD_PYTHON="$SOURCE_DIR/cross-build/build/python.exe"
 debug "build Python path: $BUILD_PYTHON"
-debug "build Python lookup: $(command -v "$BUILD_PYTHON" 2>&1 || true)"
-if [ -e "$BUILD_PYTHON" ]; then
-    if [ "$DEBUG_BUILD" = 1 ]; then
-        ls -l "$BUILD_PYTHON" >&2 || true
-        if command -v file >/dev/null 2>&1; then
-            file "$BUILD_PYTHON" >&2 || true
-        fi
-        "$BUILD_PYTHON" --version >&2 || true
-        "$BUILD_PYTHON" -c 'import os, sys; print("executable:", sys.executable); print("version:", sys.version); print("cwd:", os.getcwd())' >&2 || true
-    fi
-else
-    debug "build Python does not exist"
-fi
 [ -f "$BUILD_PYTHON" ] || die "host Python was not built: $BUILD_PYTHON"
 [ -x "$BUILD_PYTHON" ] || die "host Python is not executable: $BUILD_PYTHON"
 [ -d "$DEPS_PREFIX" ] || die "Apple dependency prefix was not created: $DEPS_PREFIX"
@@ -170,9 +154,12 @@ PYTHON_FRAMEWORK="$PACKAGE_ROOT$FRAMEWORK_PREFIX/Python.framework"
 PYTHON_BIN="$PREFIX/bin/python3.14"
 [ -d "$PYTHON_FRAMEWORK" ] || die "Python.framework was not installed: $PYTHON_FRAMEWORK"
 [ -f "$PYTHON_FRAMEWORK/Python" ] || die "Python.framework binary was not installed: $PYTHON_FRAMEWORK/Python"
-[ -x "$TARGET_DIR/python" ] || die "target Python executable was not built: $TARGET_DIR/python"
+TARGET_PYTHON="$TARGET_DIR/python.exe"
+debug "target Python path: $TARGET_PYTHON"
+[ -f "$TARGET_PYTHON" ] || die "target Python executable was not built: $TARGET_PYTHON"
+[ -x "$TARGET_PYTHON" ] || die "target Python is not executable: $TARGET_PYTHON"
 mkdir -p "$PREFIX/bin"
-cp "$TARGET_DIR/python" "$PYTHON_BIN"
+cp "$TARGET_PYTHON" "$PYTHON_BIN"
 
 # The bundled pip wheel is installed by the host interpreter so the target
 # executable is never run during the cross-build.
