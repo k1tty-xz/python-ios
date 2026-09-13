@@ -121,10 +121,10 @@ fi
 
 mkdir -p "$TARGET_DIR" "$PACKAGE_ROOT" "$DEB_DIR"
 
+export PATH="$SOURCE_DIR/Apple/iOS/Resources/bin:$DEPS_PREFIX/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin"
 printf 'Configuring CPython with Python.framework...\n'
 (
     cd "$TARGET_DIR"
-    export PATH="$SOURCE_DIR/Apple/iOS/Resources/bin:$DEPS_PREFIX/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin"
     debug "target configure PATH: $PATH"
     if [ "$DEBUG_BUILD" = 1 ]; then set -x; fi
     if "$SOURCE_DIR/configure" \
