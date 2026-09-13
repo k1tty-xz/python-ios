@@ -55,7 +55,7 @@ require_command() {
 
 [ "$(uname -s)" = Darwin ] || die "this build must run on macOS"
 
-for command_name in curl shasum make dpkg-deb xcodebuild; do
+for command_name in curl python3 shasum make dpkg-deb tar xcodebuild; do
     require_command "$command_name"
 done
 
@@ -163,16 +163,16 @@ cp "$TARGET_PYTHON" "$PYTHON_BIN"
 
 # The bundled pip wheel is installed by the host interpreter so the target
 # executable is never run during the cross-build.
-PIP_WHEEL="$SOURCE_DIR/Lib/ensurepip/_bundled/pip-*.whl"
-set -- $PIP_WHEEL
-[ -f "${1:-}" ] || die "bundled pip wheel was not found"
+set -- "$SOURCE_DIR"/Lib/ensurepip/_bundled/pip-*.whl
+[ -f "$1" ] || die "bundled pip wheel was not found"
 PYTHONPATH="$1" "$BUILD_PYTHON" -m pip install \
     --no-cache-dir \
     --no-index \
+    --no-deps \
     --no-warn-script-location \
     --prefix="$FRAMEWORK_PREFIX" \
     --root="$PACKAGE_ROOT" \
-    pip
+    "$1"
 
 ln -sf python3.14 "$PREFIX/bin/python3"
 ln -sf python3.14 "$PREFIX/bin/python"
