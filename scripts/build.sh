@@ -6,7 +6,6 @@ VERSION=$(tr -d '[:space:]' < "$ROOT_DIR/CPYTHON_VERSION")
 SOURCE_SHA256=$(tr -d '[:space:]' < "$ROOT_DIR/CPYTHON_SHA256")
 WORK_DIR=${WORK_DIR:-"$(mktemp -d "${TMPDIR:-/tmp}/python-ios-build.XXXXXX")"}
 OUTPUT_DIR=${OUTPUT_DIR:-"$ROOT_DIR/dist"}
-DEBUG_BUILD=${DEBUG_BUILD:-1}
 INSTALL_PREFIX=/usr/local
 FRAMEWORK_PREFIX="$INSTALL_PREFIX/Frameworks"
 SOURCE_ARCHIVE="$WORK_DIR/Python-$VERSION.tar.xz"
@@ -26,44 +25,6 @@ cleanup() {
 }
 trap cleanup EXIT
 
-die() {
-    printf 'error: %s\n' "$*" >&2
-    exit 1
-}
-
-debug() {
-    [ "$DEBUG_BUILD" = 1 ] || return 0
-    printf 'debug: %s\n' "$*" >&2
-}
-
-dump_config_logs() {
-    [ "$DEBUG_BUILD" = 1 ] || return 0
-    for log_file in \
-        "$SOURCE_DIR"/config.log \
-        "$SOURCE_DIR"/cross-build/*/config.log \
-        "$TARGET_DIR"/config.log
-    do
-        [ -f "$log_file" ] || continue
-        printf '\n--- %s (last 120 lines) ---\n' "$log_file" >&2
-        tail -n 120 "$log_file" >&2 || true
-    done
-}
-
-require_command() {
-    command -v "$1" >/dev/null 2>&1 || die "missing required command: $1"
-}
-
-[ "$(uname -s)" = Darwin ] || die "this build must run on macOS"
-
-for command_name in curl python3 shasum make dpkg-deb tar xcodebuild; do
-    require_command "$command_name"
-done
-
-xcodebuild -version >/dev/null
-debug "uname: $(uname -a)"
-debug "python3: $(command -v python3 2>&1 || true)"
-debug "python3 version: $(python3 --version 2>&1 || true)"
-
 mkdir -p "$WORK_DIR" "$OUTPUT_DIR"
 
 printf 'Downloading CPython %s...\n' "$VERSION"
@@ -75,33 +36,11 @@ tar -xJf "$SOURCE_ARCHIVE" -C "$WORK_DIR"
 printf 'Building the temporary host Python and fetching Apple dependencies...\n'
 (
     cd "$SOURCE_DIR"
-    if [ "$DEBUG_BUILD" = 1 ]; then set -x; fi
-    if python3 Apple/__main__.py build iOS build; then
-        :
-    else
-        status=$?
-        if [ "$DEBUG_BUILD" = 1 ]; then set +x; fi
-        printf 'error: building the temporary host Python failed (exit %s)\n' "$status" >&2
-        dump_config_logs
-        exit "$status"
-    fi
-    if python3 Apple/__main__.py configure-host iOS arm64-apple-ios; then
-        :
-    else
-        status=$?
-        if [ "$DEBUG_BUILD" = 1 ]; then set +x; fi
-        printf 'error: configuring the iOS host Python failed (exit %s)\n' "$status" >&2
-        dump_config_logs
-        exit "$status"
-    fi
-    if [ "$DEBUG_BUILD" = 1 ]; then set +x; fi
+    python3 Apple/__main__.py build iOS build
+    python3 Apple/__main__.py configure-host iOS arm64-apple-ios
 )
 
 BUILD_PYTHON="$SOURCE_DIR/cross-build/build/python.exe"
-debug "build Python path: $BUILD_PYTHON"
-[ -f "$BUILD_PYTHON" ] || die "host Python was not built: $BUILD_PYTHON"
-[ -x "$BUILD_PYTHON" ] || die "host Python is not executable: $BUILD_PYTHON"
-[ -d "$DEPS_PREFIX" ] || die "Apple dependency prefix was not created: $DEPS_PREFIX"
 
 mkdir -p "$TARGET_DIR" "$PACKAGE_ROOT" "$DEB_DIR"
 
@@ -109,9 +48,7 @@ export PATH="$SOURCE_DIR/Apple/iOS/Resources/bin:$DEPS_PREFIX/bin:$PATH"
 printf 'Configuring CPython with Python.framework...\n'
 (
     cd "$TARGET_DIR"
-    debug "target configure PATH: $PATH"
-    if [ "$DEBUG_BUILD" = 1 ]; then set -x; fi
-    if "$SOURCE_DIR/configure" \
+    "$SOURCE_DIR/configure" \
         --host=arm64-apple-ios \
         --build="$(uname -m)-apple-darwin" \
         --with-build-python="$BUILD_PYTHON" \
@@ -129,16 +66,7 @@ printf 'Configuring CPython with Python.framework...\n'
         LIBFFI_CFLAGS="-I$DEPS_PREFIX/include" \
         LIBFFI_LIBS="-L$DEPS_PREFIX/lib -lffi" \
         LIBZSTD_CFLAGS="-I$DEPS_PREFIX/include" \
-        LIBZSTD_LIBS="-L$DEPS_PREFIX/lib -lzstd"; then
-        :
-    else
-        status=$?
-        if [ "$DEBUG_BUILD" = 1 ]; then set +x; fi
-        printf 'error: CPython framework configure failed (exit %s)\n' "$status" >&2
-        dump_config_logs
-        exit "$status"
-    fi
-    if [ "$DEBUG_BUILD" = 1 ]; then set +x; fi
+        LIBZSTD_LIBS="-L$DEPS_PREFIX/lib -lzstd"
 )
 
 JOBS=${JOBS:-$(sysctl -n hw.ncpu)}
@@ -152,19 +80,13 @@ printf 'Building CPython with %s jobs...\n' "$JOBS"
 PREFIX="$PACKAGE_ROOT$INSTALL_PREFIX"
 PYTHON_FRAMEWORK="$PACKAGE_ROOT$FRAMEWORK_PREFIX/Python.framework"
 PYTHON_BIN="$PREFIX/bin/python3.14"
-[ -d "$PYTHON_FRAMEWORK" ] || die "Python.framework was not installed: $PYTHON_FRAMEWORK"
-[ -f "$PYTHON_FRAMEWORK/Python" ] || die "Python.framework binary was not installed: $PYTHON_FRAMEWORK/Python"
 TARGET_PYTHON="$TARGET_DIR/python.exe"
-debug "target Python path: $TARGET_PYTHON"
-[ -f "$TARGET_PYTHON" ] || die "target Python executable was not built: $TARGET_PYTHON"
-[ -x "$TARGET_PYTHON" ] || die "target Python is not executable: $TARGET_PYTHON"
 mkdir -p "$PREFIX/bin"
 cp "$TARGET_PYTHON" "$PYTHON_BIN"
 
 # The bundled pip wheel is installed by the host interpreter so the target
 # executable is never run during the cross-build.
 set -- "$SOURCE_DIR"/Lib/ensurepip/_bundled/pip-*.whl
-[ -f "$1" ] || die "bundled pip wheel was not found"
 PYTHONPATH="$1" "$BUILD_PYTHON" -m pip install \
     --no-cache-dir \
     --no-warn-script-location \
