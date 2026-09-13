@@ -105,7 +105,7 @@ debug "build Python path: $BUILD_PYTHON"
 
 mkdir -p "$TARGET_DIR" "$PACKAGE_ROOT" "$DEB_DIR"
 
-export PATH="$SOURCE_DIR/Apple/iOS/Resources/bin:$DEPS_PREFIX/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin"
+export PATH="$SOURCE_DIR/Apple/iOS/Resources/bin:$DEPS_PREFIX/bin:$PATH"
 printf 'Configuring CPython with Python.framework...\n'
 (
     cd "$TARGET_DIR"
