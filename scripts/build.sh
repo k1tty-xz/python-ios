@@ -70,6 +70,53 @@ printf '%s  %s\n' "$SOURCE_SHA256" "$SOURCE_ARCHIVE" | shasum -a 256 -c -
 
 tar -xJf "$SOURCE_ARCHIVE" -C "$WORK_DIR"
 
+printf 'Adapting CPython for a rootful no-framework iOS build...\n'
+python3 - "$SOURCE_DIR/configure" "$SOURCE_DIR/configure.ac" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+guard_patterns = {
+    "configure": re.compile(
+        r'(?m)^([ \t]*)iOS\) as_fn_error \$\? "iOS builds must use --enable-framework" '
+        r'"\$LINENO" 5 ;;\n([ \t]*)\*\)'
+    ),
+    "configure.ac": re.compile(
+        r'(?m)^([ \t]*)iOS\) AC_MSG_ERROR\(\[iOS builds must use --enable-framework\]\) ;;\n'
+        r'([ \t]*)\*\)'
+    ),
+}
+
+link_pattern = re.compile(
+    r'''(?m)^([ \t]*)elif test \$ac_sys_system = "iOS"; then\n'''
+    r'''([ \t]*)LINKFORSHARED="-Wl,-stack_size,\$stack_size \$LINKFORSHARED "'\$\(PYTHONFRAMEWORKDIR\)/\$\(PYTHONFRAMEWORK\)'\n'''
+    r'''([ \t]*)fi'''
+)
+link_replacement = (
+    r'\1elif test $ac_sys_system = "iOS"; then\n'
+    r'\2LINKFORSHARED="-Wl,-stack_size,$stack_size $LINKFORSHARED"\n'
+    r'\2if test "$enable_framework"; then\n'
+    r'''\2    LINKFORSHARED="$LINKFORSHARED "'$(PYTHONFRAMEWORKDIR)/$(PYTHONFRAMEWORK)'\n'''
+    r'\2fi\n'
+    r'\3fi'
+)
+
+for name in sys.argv[1:]:
+    path = Path(name)
+    text = path.read_text(encoding="utf-8")
+
+    guard = guard_patterns[path.name]
+    text, count = guard.subn(r'\1iOS|*)', text)
+    if count != 2:
+        raise SystemExit(f"expected two iOS framework guards in {path}, found {count}")
+
+    text, count = link_pattern.subn(link_replacement, text)
+    if count != 1:
+        raise SystemExit(f"expected one iOS link rule in {path}, found {count}")
+
+    path.write_text(text, encoding="utf-8")
+PY
+
 printf 'Building the temporary host Python and fetching Apple dependencies...\n'
 (
     cd "$SOURCE_DIR"
