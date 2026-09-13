@@ -167,8 +167,6 @@ set -- "$SOURCE_DIR"/Lib/ensurepip/_bundled/pip-*.whl
 [ -f "$1" ] || die "bundled pip wheel was not found"
 PYTHONPATH="$1" "$BUILD_PYTHON" -m pip install \
     --no-cache-dir \
-    --no-index \
-    --no-deps \
     --no-warn-script-location \
     --prefix="$FRAMEWORK_PREFIX" \
     --root="$PACKAGE_ROOT" \
