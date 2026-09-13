@@ -1,50 +1,52 @@
-#!/bin/bash
-set -euo pipefail
+#!/bin/sh
+set -eu
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VERSION="$(tr -d '[:space:]' < "$ROOT_DIR/CPYTHON_VERSION")"
-PYTHON_VERSION="${VERSION%.*}"
-PACKAGE="${1:-}"
-
-if [ "$#" -ne 1 ] || [ ! -f "$PACKAGE" ]; then
-    echo "usage: $0 path/to/python-ios_*.deb" >&2
+PACKAGE=${1:-}
+[ -n "$PACKAGE" ] || {
+    printf 'usage: %s path/to/package.deb\n' "$0" >&2
     exit 2
+}
+[ -f "$PACKAGE" ] || {
+    printf 'error: package not found: %s\n' "$PACKAGE" >&2
+    exit 1
+}
+
+WORK_DIR=$(mktemp -d "${TMPDIR:-/tmp}/python-ios-test.XXXXXX")
+trap 'rm -rf "$WORK_DIR"' EXIT
+
+dpkg-deb --info "$PACKAGE" >/dev/null
+dpkg-deb --extract "$PACKAGE" "$WORK_DIR/root"
+
+ROOT="$WORK_DIR/root"
+PREFIX="$ROOT/usr/local"
+PYTHON_BIN="$PREFIX/bin/python3.14"
+
+[ -x "$PYTHON_BIN" ]
+[ -L "$PREFIX/bin/python3" ]
+[ -L "$PREFIX/bin/python" ]
+[ -d "$PREFIX/lib/python3.14" ]
+
+[ ! -e "$PREFIX/Frameworks/Python.framework" ]
+[ ! -e "$PREFIX/lib/Python.framework" ]
+[ ! -e "$PREFIX/lib/libpython3.14.dylib" ]
+
+if find "$PREFIX" \( -type f -o -type l \) \( -name '*.so' -o -name '*.dylib' \) -print -quit | grep -q .; then
+    printf 'error: dynamic runtime library found in package\n' >&2
+    exit 1
+fi
+if find "$PREFIX" -type d -name 'Python.framework' -print -quit | grep -q .; then
+    printf 'error: Python.framework found in package\n' >&2
+    exit 1
 fi
 
-VERIFY="$(mktemp -d "${TMPDIR:-/tmp}/python-ios-test.XXXXXX")"
-trap 'rm -rf "$VERIFY"' EXIT
-dpkg-deb --extract "$PACKAGE" "$VERIFY"
-CONTROL="$VERIFY/control"
-mkdir "$CONTROL"
-dpkg-deb --control "$PACKAGE" "$CONTROL"
+find "$PREFIX/lib" -type f -name 'libpython*.a' -print -quit | grep -q .
 
-PREFIX="$VERIFY/usr/local"
-LIB_DIR="$PREFIX/lib/python$PYTHON_VERSION"
-test "$(dpkg-deb -f "$PACKAGE" Package)" = com.python.ios
-test "$(dpkg-deb -f "$PACKAGE" Version)" = "$VERSION-1"
-test "$(dpkg-deb -f "$PACKAGE" Architecture)" = iphoneos-arm
-test "$(dpkg-deb -f "$PACKAGE" Depends)" = 'firmware (>= 14.8), ca-certificates'
-test -x "$PREFIX/bin/python$PYTHON_VERSION"
-test -x "$PREFIX/bin/pip$PYTHON_VERSION"
-test "$(readlink "$PREFIX/bin/python3")" = "python$PYTHON_VERSION"
-test "$(readlink "$PREFIX/bin/pip3")" = "pip$PYTHON_VERSION"
-test -f "$LIB_DIR/encodings/__init__.py"
-test -f "$LIB_DIR/os.py"
-test -f "$LIB_DIR/site-packages/pip/__main__.py"
-test -f "$CONTROL/postinst"
-sh -n "$CONTROL/postinst"
-test -z "$(find "$LIB_DIR" -type d -name __pycache__ -print -quit)"
-grep -Fq '_can_fork_exec = sys.platform not in {"emscripten", "wasi", "tvos", "watchos"}' \
-    "$LIB_DIR/subprocess.py"
+command -v lipo >/dev/null 2>&1
+lipo -verify_arch arm64 "$PYTHON_BIN"
+codesign --verify --deep --strict "$PYTHON_BIN"
+if otool -L "$PYTHON_BIN" | grep -E 'Python\.framework|libpython.*\.dylib' >/dev/null; then
+    printf 'error: dynamic Python library dependency found in executable\n' >&2
+    exit 1
+fi
 
-for module in _ssl _hashlib _ctypes _sqlite3 _bz2 _lzma _decimal _zstd _posixsubprocess zlib; do
-    extensions=("$LIB_DIR/lib-dynload/$module".*.so)
-    test -f "${extensions[0]}"
-done
-
-while IFS= read -r -d '' native; do
-    lipo "$native" -verify_arch arm64
-    codesign --verify "$native"
-done < <(find "$PREFIX" -type f \( -name '*.so' -o -name Python -o -name "python$PYTHON_VERSION" \) -print0)
-
-printf 'Package tests passed: %s\n' "$PACKAGE"
+printf 'Static package checks passed: %s\n' "$PACKAGE"

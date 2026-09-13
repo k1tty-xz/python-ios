@@ -1,9 +1,13 @@
-Package: com.python.ios
-Name: Python3.14
-Version: @VERSION@-1
-Architecture: iphoneos-arm
-Description: CPython @VERSION@ command-line runtime for rootful iOS
-Maintainer: k1tty-xz
-Section: Development
+Package: com.python.ios.static
+Name: Python 3.14 Static
+Version: 3.14.7-1
+Architecture: iphoneos-arm64
+Description: Static CPython runtime for rootful iOS
+ A self-contained arm64 CPython executable and standard library.
+ This package intentionally does not ship Python.framework or runtime
+ extension modules.
+Section: Interpreters
 Priority: optional
+Maintainer: Python iOS contributors
+Author: Python iOS contributors
 Depends: firmware (>= 14.8), ca-certificates

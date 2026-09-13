@@ -1,100 +1,143 @@
-#!/bin/bash
-set -euo pipefail
+#!/bin/sh
+set -eu
 
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VERSION="$(tr -d '[:space:]' < "$ROOT_DIR/CPYTHON_VERSION")"
-PYTHON_VERSION="${VERSION%.*}"
-BUILD_ROOT="$(mktemp -d "${RUNNER_TEMP:-/tmp}/python-ios.XXXXXX")"
-SOURCE_DIR="$BUILD_ROOT/Python-$VERSION"
-TARGET="arm64-apple-ios"
-OUTPUT_DIR="${RUNNER_TEMP:-/tmp}/python-ios-dist"
-PKG_ROOT="$BUILD_ROOT/package"
-PREFIX="$PKG_ROOT/usr/local"
-PACKAGE="$OUTPUT_DIR/python-ios_${VERSION}-1_iphoneos-arm.deb"
+ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+VERSION=$(tr -d '[:space:]' < "$ROOT_DIR/CPYTHON_VERSION")
+SOURCE_SHA256=$(tr -d '[:space:]' < "$ROOT_DIR/CPYTHON_SHA256")
+WORK_DIR=${WORK_DIR:-"$(mktemp -d "${TMPDIR:-/tmp}/python-ios-build.XXXXXX")"}
+OUTPUT_DIR=${OUTPUT_DIR:-"$ROOT_DIR/dist"}
+SOURCE_ARCHIVE="$WORK_DIR/Python-$VERSION.tar.xz"
+SOURCE_DIR="$WORK_DIR/Python-$VERSION"
+TARGET_DIR="$WORK_DIR/target"
+PACKAGE_ROOT="$WORK_DIR/package-root"
+DEB_DIR="$WORK_DIR/deb"
+DEPS_PREFIX="$SOURCE_DIR/cross-build/arm64-apple-ios/prefix"
+PYTHON_URL="https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tar.xz"
 
-echo "Build root: $BUILD_ROOT"
-xcodebuild -version
-command -v dpkg-deb
-curl -fL --retry 5 --retry-all-errors \
-    -o "$BUILD_ROOT/Python.tar.xz" \
-    "https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tar.xz"
-printf '%s  %s\n' "$(cat "$ROOT_DIR/CPYTHON_SHA256")" "$BUILD_ROOT/Python.tar.xz" \
-    | shasum -a 256 -c -
-tar -xf "$BUILD_ROOT/Python.tar.xz" -C "$BUILD_ROOT"
-cd "$SOURCE_DIR"
+cleanup() {
+    if [ "${KEEP_BUILD:-0}" != 1 ]; then
+        rm -rf "$WORK_DIR"
+    else
+        printf 'Keeping build directory: %s\n' "$WORK_DIR"
+    fi
+}
+trap cleanup EXIT
 
-# Rootful iOS can run POSIX subprocesses, which pip needs for source builds.
-python3 - "$SOURCE_DIR/Lib/subprocess.py" "$SOURCE_DIR/configure" <<'PY'
-from pathlib import Path
-import sys
+die() {
+    printf 'error: %s\n' "$*" >&2
+    exit 1
+}
 
-subprocess_path = Path(sys.argv[1])
-configure_path = Path(sys.argv[2])
+require_command() {
+    command -v "$1" >/dev/null 2>&1 || die "missing required command: $1"
+}
 
-subprocess = subprocess_path.read_text()
-old = '_can_fork_exec = sys.platform not in {"emscripten", "wasi", "ios", "tvos", "watchos"}'
-new = '_can_fork_exec = sys.platform not in {"emscripten", "wasi", "tvos", "watchos"}'
-if subprocess.count(old) != 1:
-    raise SystemExit(f"unexpected subprocess guard in {subprocess_path}")
-subprocess_path.write_text(subprocess.replace(old, new, 1))
+[ "$(uname -s)" = Darwin ] || die "this build must run on macOS"
 
-configure = configure_path.read_text()
-needle = "    py_cv_module__posixsubprocess=n/a\n"
-if configure.count(needle) < 1:
-    raise SystemExit(f"unexpected _posixsubprocess configure entry in {configure_path}")
-configure = configure.replace(needle, "", 1)
-configure_path.write_text(configure)
-PY
+for command_name in curl shasum make dpkg-deb xcodebuild; do
+    require_command "$command_name"
+done
 
-python3 Apple/__main__.py build iOS build
-python3 Apple/__main__.py build iOS "$TARGET" -- --disable-test-modules
-PRODUCT="$SOURCE_DIR/cross-build/$TARGET/Apple/iOS/Frameworks/arm64-iphoneos"
+xcodebuild -version >/dev/null
 
-mkdir -p "$PREFIX/Frameworks" "$PREFIX/bin" "$PREFIX/lib" "$OUTPUT_DIR"
-cp -R "$PRODUCT/Python.framework" "$PREFIX/Frameworks/"
-cp -R "$PRODUCT/lib/python$PYTHON_VERSION" "$PREFIX/lib/"
-find "$PREFIX/lib/python$PYTHON_VERSION" -type d -name __pycache__ \
-    -prune -exec rm -rf {} +
-ln -s ../Frameworks/Python.framework/Python "$PREFIX/lib/libpython$PYTHON_VERSION.dylib"
+mkdir -p "$WORK_DIR" "$OUTPUT_DIR"
 
-# Build the terminal launcher; CPython's iOS config also needs UIKit linked.
-xcrun --sdk iphoneos clang -target "$TARGET" -mios-version-min=13.0 \
-    -Werror=deprecated-declarations \
-    -I"$PRODUCT/Python.framework/Headers" \
-    -F"$PRODUCT" -framework Python \
-    -Wl,-needed_framework,UIKit \
-    -Wl,-rpath,@executable_path/../Frameworks \
-    "$ROOT_DIR/scripts/python.c" -o "$PREFIX/bin/python$PYTHON_VERSION"
-ln -s "python$PYTHON_VERSION" "$PREFIX/bin/python3"
-ln -s python3 "$PREFIX/bin/python"
+printf 'Downloading CPython %s...\n' "$VERSION"
+curl --fail --location --retry 3 --output "$SOURCE_ARCHIVE" "$PYTHON_URL"
+printf '%s  %s\n' "$SOURCE_SHA256" "$SOURCE_ARCHIVE" | shasum -a 256 -c -
 
-# Install the bundled wheel offline with the host build Python.
+tar -xJf "$SOURCE_ARCHIVE" -C "$WORK_DIR"
+
+printf 'Building the temporary host Python and fetching Apple dependencies...\n'
+(
+    cd "$SOURCE_DIR"
+    python3 Apple/__main__.py build iOS build
+    python3 Apple/__main__.py configure-host iOS arm64-apple-ios
+)
+
 BUILD_PYTHON="$SOURCE_DIR/cross-build/build/python"
-if [ ! -f "$BUILD_PYTHON" ]; then
-    BUILD_PYTHON="$BUILD_PYTHON.exe"
+[ -x "$BUILD_PYTHON" ] || die "host Python was not built: $BUILD_PYTHON"
+[ -d "$DEPS_PREFIX" ] || die "Apple dependency prefix was not created: $DEPS_PREFIX"
+
+mkdir -p "$TARGET_DIR" "$PACKAGE_ROOT" "$DEB_DIR"
+
+printf 'Configuring static CPython...\n'
+(
+    cd "$TARGET_DIR"
+    export PATH="$SOURCE_DIR/Apple/iOS/Resources/bin:$DEPS_PREFIX/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin"
+    export IPHONEOS_DEPLOYMENT_TARGET=14.8
+    "$SOURCE_DIR/configure" \
+        --prefix=/usr/local \
+        --host=arm64-apple-ios14.8 \
+        --build="$(uname -m)-apple-darwin" \
+        --with-build-python="$BUILD_PYTHON" \
+        --disable-framework \
+        --disable-test-modules \
+        --with-ensurepip=no \
+        --with-system-libmpdec \
+        --with-openssl="$DEPS_PREFIX" \
+        --with-openssl-rpath=no \
+        MODULE_BUILDTYPE=static \
+        LIBMPDEC_CFLAGS="-I$DEPS_PREFIX/include" \
+        LIBMPDEC_LIBS="-L$DEPS_PREFIX/lib -lmpdec" \
+        LIBLZMA_CFLAGS="-I$DEPS_PREFIX/include" \
+        LIBLZMA_LIBS="-L$DEPS_PREFIX/lib -llzma" \
+        LIBFFI_CFLAGS="-I$DEPS_PREFIX/include" \
+        LIBFFI_LIBS="-L$DEPS_PREFIX/lib -lffi" \
+        LIBZSTD_CFLAGS="-I$DEPS_PREFIX/include" \
+        LIBZSTD_LIBS="-L$DEPS_PREFIX/lib -lzstd"
+)
+
+JOBS=${JOBS:-$(sysctl -n hw.ncpu)}
+printf 'Building CPython with %s jobs...\n' "$JOBS"
+(
+    cd "$TARGET_DIR"
+    make -j"$JOBS"
+    make install DESTDIR="$PACKAGE_ROOT" ENSUREPIP=no
+)
+
+PREFIX="$PACKAGE_ROOT/usr/local"
+PYTHON_BIN="$PREFIX/bin/python3.14"
+[ -x "$PYTHON_BIN" ] || die "static Python executable was not installed: $PYTHON_BIN"
+
+# The bundled pip wheel is installed by the host interpreter so the target
+# executable is never run during the cross-build.
+PIP_WHEEL="$SOURCE_DIR/Lib/ensurepip/_bundled/pip-*.whl"
+set -- $PIP_WHEEL
+[ -f "${1:-}" ] || die "bundled pip wheel was not found"
+PYTHONPATH="$1" "$BUILD_PYTHON" -m pip install \
+    --no-cache-dir \
+    --no-index \
+    --no-warn-script-location \
+    --prefix=/usr/local \
+    --root="$PACKAGE_ROOT" \
+    pip
+
+ln -sf python3.14 "$PREFIX/bin/python3"
+ln -sf python3.14 "$PREFIX/bin/python"
+rm -f "$PREFIX/bin/pip3.14" "$PREFIX/bin/pip3" "$PREFIX/bin/pip"
+cp "$ROOT_DIR/packaging/pip-wrapper" "$PREFIX/bin/pip"
+chmod 0755 "$PREFIX/bin/pip"
+ln -sf pip "$PREFIX/bin/pip3"
+ln -sf pip "$PREFIX/bin/pip3.14"
+
+if find "$PREFIX" \( -type f -o -type l \) \( -name '*.so' -o -name '*.dylib' \) -print -quit | grep -q .; then
+    die "static package unexpectedly contains a dynamic runtime library"
 fi
-PIP_WHEEL=("$SOURCE_DIR"/Lib/ensurepip/_bundled/pip-*.whl)
-PYTHONPATH="${PIP_WHEEL[0]}" "$BUILD_PYTHON" -m pip --isolated install \
-    --no-index --no-deps --ignore-installed --no-compile \
-    --prefix /usr/local --root "$PKG_ROOT" "${PIP_WHEEL[0]}"
-# Host-generated scripts can contain a multi-line shebang for long build paths.
-printf '#!/bin/sh\nexec /usr/local/bin/python%s -m pip "$@"\n' "$PYTHON_VERSION" \
-    > "$PREFIX/bin/pip$PYTHON_VERSION"
-chmod 755 "$PREFIX/bin/pip$PYTHON_VERSION"
-ln -sf "pip$PYTHON_VERSION" "$PREFIX/bin/pip3"
-ln -sf pip3 "$PREFIX/bin/pip"
+if find "$PREFIX" -type d -name 'Python.framework' -print -quit | grep -q .; then
+    die "static package unexpectedly contains Python.framework"
+fi
 
-mkdir -p "$PKG_ROOT/DEBIAN"
-sed "s/@VERSION@/$VERSION/g" "$ROOT_DIR/packaging/control.in" > "$PKG_ROOT/DEBIAN/control"
-install -m 755 "$ROOT_DIR/packaging/postinst" "$PKG_ROOT/DEBIAN/postinst"
+strip -x "$PYTHON_BIN"
+codesign --force --sign - "$PYTHON_BIN"
 
-# Strip, validate, and sign each shipped native binary.
-while IFS= read -r -d '' native; do
-    lipo "$native" -verify_arch arm64
-    xcrun --sdk iphoneos strip -x "$native"
-    codesign -f -s - --timestamp=none "$native"
-    codesign --verify "$native"
-done < <(find "$PREFIX" -type f \( -name '*.so' -o -name Python -o -name "python$PYTHON_VERSION" \) -print0)
+mkdir -p "$DEB_DIR/DEBIAN"
+sed "s/^Version: .*/Version: $VERSION-1/" "$ROOT_DIR/packaging/control.in" \
+    > "$DEB_DIR/DEBIAN/control"
+cp -R "$PACKAGE_ROOT"/. "$DEB_DIR"/
 
-dpkg-deb --root-owner-group -Zxz -b "$PKG_ROOT" "$PACKAGE"
-ls -lh "$PACKAGE"
+PACKAGE_PATH="$OUTPUT_DIR/python-ios-static_${VERSION}-1_iphoneos-arm64.deb"
+rm -f "$PACKAGE_PATH"
+dpkg-deb --build --root-owner-group "$DEB_DIR" "$PACKAGE_PATH"
+
+printf 'Built: %s\n' "$PACKAGE_PATH"

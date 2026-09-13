@@ -1,67 +1,22 @@
-name: Build CPython for rootful iOS 14.8
+name: Build static CPython for iOS
 
 on:
-  workflow_dispatch:
   push:
-    paths:
-      - '.github/workflows/build.yml'
-      - 'CPYTHON_VERSION'
-      - 'CPYTHON_SHA256'
-      - 'packaging/**'
-      - 'scripts/**'
-
-permissions:
-  contents: read
+  pull_request:
 
 jobs:
-  build:
+  package:
     runs-on: macos-14
-    timeout-minutes: 180
-    env:
-      DEVELOPER_DIR: /Applications/Xcode_15.4.app/Contents/Developer
-
     steps:
-      - name: Check out source
-        uses: actions/checkout@v7
-
-      - name: Check the pinned Xcode toolchain
-        run: |
-          xcodebuild -version
-          xcrun --sdk iphoneos --show-sdk-path
-
+      - uses: actions/checkout@v4
       - name: Install Debian packaging tools
         run: brew install dpkg
-
-      - name: Build CPython arm64 package
+      - name: Build package
         run: ./scripts/build.sh
-
-      - name: Upload rootful Debian package
-        uses: actions/upload-artifact@v7
+      - name: Verify package
+        run: ./scripts/test.sh dist/python-ios-static_3.14.7-1_iphoneos-arm64.deb
+      - name: Upload package
+        uses: actions/upload-artifact@v4
         with:
-          name: python-ios-rootful-${{ github.sha }}
-          path: ${{ runner.temp }}/python-ios-dist/python-ios_*.deb
-          if-no-files-found: error
-          retention-days: 14
-
-  test:
-    needs: build
-    runs-on: macos-14
-    timeout-minutes: 15
-    env:
-      DEVELOPER_DIR: /Applications/Xcode_15.4.app/Contents/Developer
-
-    steps:
-      - name: Check out source
-        uses: actions/checkout@v7
-
-      - name: Install Debian packaging tools
-        run: brew install dpkg
-
-      - name: Download package
-        uses: actions/download-artifact@v7
-        with:
-          name: python-ios-rootful-${{ github.sha }}
-          path: dist
-
-      - name: Test package
-        run: ./scripts/test.sh dist/python-ios_*.deb
+          name: python-ios-static
+          path: dist/*.deb
