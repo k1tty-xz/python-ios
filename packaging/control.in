@@ -10,4 +10,4 @@ Section: Interpreters
 Priority: optional
 Maintainer: Python iOS contributors
 Author: Python iOS contributors
-Depends: firmware (>= 14.8), ca-certificates
+Depends: firmware, ca-certificates

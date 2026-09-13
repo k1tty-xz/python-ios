@@ -6,6 +6,7 @@ VERSION=$(tr -d '[:space:]' < "$ROOT_DIR/CPYTHON_VERSION")
 SOURCE_SHA256=$(tr -d '[:space:]' < "$ROOT_DIR/CPYTHON_SHA256")
 WORK_DIR=${WORK_DIR:-"$(mktemp -d "${TMPDIR:-/tmp}/python-ios-build.XXXXXX")"}
 OUTPUT_DIR=${OUTPUT_DIR:-"$ROOT_DIR/dist"}
+DEBUG_BUILD=${DEBUG_BUILD:-1}
 SOURCE_ARCHIVE="$WORK_DIR/Python-$VERSION.tar.xz"
 SOURCE_DIR="$WORK_DIR/Python-$VERSION"
 TARGET_DIR="$WORK_DIR/target"
@@ -28,6 +29,24 @@ die() {
     exit 1
 }
 
+debug() {
+    [ "$DEBUG_BUILD" = 1 ] || return 0
+    printf 'debug: %s\n' "$*" >&2
+}
+
+dump_config_logs() {
+    [ "$DEBUG_BUILD" = 1 ] || return 0
+    for log_file in \
+        "$SOURCE_DIR"/config.log \
+        "$SOURCE_DIR"/cross-build/*/config.log \
+        "$TARGET_DIR"/config.log
+    do
+        [ -f "$log_file" ] || continue
+        printf '\n--- %s (last 120 lines) ---\n' "$log_file" >&2
+        tail -n 120 "$log_file" >&2 || true
+    done
+}
+
 require_command() {
     command -v "$1" >/dev/null 2>&1 || die "missing required command: $1"
 }
@@ -39,6 +58,9 @@ for command_name in curl shasum make dpkg-deb xcodebuild; do
 done
 
 xcodebuild -version >/dev/null
+debug "uname: $(uname -a)"
+debug "python3: $(command -v python3 2>&1 || true)"
+debug "python3 version: $(python3 --version 2>&1 || true)"
 
 mkdir -p "$WORK_DIR" "$OUTPUT_DIR"
 
@@ -51,11 +73,43 @@ tar -xJf "$SOURCE_ARCHIVE" -C "$WORK_DIR"
 printf 'Building the temporary host Python and fetching Apple dependencies...\n'
 (
     cd "$SOURCE_DIR"
-    python3 Apple/__main__.py build iOS build
-    python3 Apple/__main__.py configure-host iOS arm64-apple-ios
+    if [ "$DEBUG_BUILD" = 1 ]; then set -x; fi
+    if python3 Apple/__main__.py build iOS build; then
+        :
+    else
+        status=$?
+        if [ "$DEBUG_BUILD" = 1 ]; then set +x; fi
+        printf 'error: building the temporary host Python failed (exit %s)\n' "$status" >&2
+        dump_config_logs
+        exit "$status"
+    fi
+    if python3 Apple/__main__.py configure-host iOS arm64-apple-ios; then
+        :
+    else
+        status=$?
+        if [ "$DEBUG_BUILD" = 1 ]; then set +x; fi
+        printf 'error: configuring the iOS host Python failed (exit %s)\n' "$status" >&2
+        dump_config_logs
+        exit "$status"
+    fi
+    if [ "$DEBUG_BUILD" = 1 ]; then set +x; fi
 )
 
 BUILD_PYTHON="$SOURCE_DIR/cross-build/build/python"
+debug "build Python path: $BUILD_PYTHON"
+debug "build Python lookup: $(command -v "$BUILD_PYTHON" 2>&1 || true)"
+if [ -e "$BUILD_PYTHON" ]; then
+    if [ "$DEBUG_BUILD" = 1 ]; then
+        ls -l "$BUILD_PYTHON" >&2 || true
+        if command -v file >/dev/null 2>&1; then
+            file "$BUILD_PYTHON" >&2 || true
+        fi
+        "$BUILD_PYTHON" --version >&2 || true
+        "$BUILD_PYTHON" -c 'import os, sys; print("executable:", sys.executable); print("version:", sys.version); print("cwd:", os.getcwd())' >&2 || true
+    fi
+else
+    debug "build Python does not exist"
+fi
 [ -x "$BUILD_PYTHON" ] || die "host Python was not built: $BUILD_PYTHON"
 [ -d "$DEPS_PREFIX" ] || die "Apple dependency prefix was not created: $DEPS_PREFIX"
 
@@ -65,10 +119,11 @@ printf 'Configuring static CPython...\n'
 (
     cd "$TARGET_DIR"
     export PATH="$SOURCE_DIR/Apple/iOS/Resources/bin:$DEPS_PREFIX/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin"
-    export IPHONEOS_DEPLOYMENT_TARGET=14.8
-    "$SOURCE_DIR/configure" \
+    debug "target configure PATH: $PATH"
+    if [ "$DEBUG_BUILD" = 1 ]; then set -x; fi
+    if "$SOURCE_DIR/configure" \
         --prefix=/usr/local \
-        --host=arm64-apple-ios14.8 \
+        --host=arm64-apple-ios \
         --build="$(uname -m)-apple-darwin" \
         --with-build-python="$BUILD_PYTHON" \
         --disable-framework \
@@ -85,7 +140,16 @@ printf 'Configuring static CPython...\n'
         LIBFFI_CFLAGS="-I$DEPS_PREFIX/include" \
         LIBFFI_LIBS="-L$DEPS_PREFIX/lib -lffi" \
         LIBZSTD_CFLAGS="-I$DEPS_PREFIX/include" \
-        LIBZSTD_LIBS="-L$DEPS_PREFIX/lib -lzstd"
+        LIBZSTD_LIBS="-L$DEPS_PREFIX/lib -lzstd"; then
+        :
+    else
+        status=$?
+        if [ "$DEBUG_BUILD" = 1 ]; then set +x; fi
+        printf 'error: static CPython configure failed (exit %s)\n' "$status" >&2
+        dump_config_logs
+        exit "$status"
+    fi
+    if [ "$DEBUG_BUILD" = 1 ]; then set +x; fi
 )
 
 JOBS=${JOBS:-$(sysctl -n hw.ncpu)}
