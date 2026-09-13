@@ -10,12 +10,14 @@ INSTALL_PREFIX=/usr/local
 FRAMEWORK_PREFIX="$INSTALL_PREFIX/Frameworks"
 SOURCE_ARCHIVE="$WORK_DIR/Python-$VERSION.tar.xz"
 SOURCE_DIR="$WORK_DIR/Python-$VERSION"
+HOST_BUILD_DIR="$SOURCE_DIR/cross-build"
 TARGET_DIR="$WORK_DIR/target"
 PACKAGE_ROOT="$WORK_DIR/package-root"
 DEB_DIR="$WORK_DIR/deb"
-DEPS_PREFIX="$SOURCE_DIR/cross-build/arm64-apple-ios/prefix"
+DEPS_PREFIX="$HOST_BUILD_DIR/arm64-apple-ios/prefix"
 PYTHON_URL="https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tar.xz"
 
+# Download and unpack CPython.
 mkdir -p "$WORK_DIR" "$OUTPUT_DIR"
 
 printf 'Downloading CPython %s...\n' "$VERSION"
@@ -24,6 +26,7 @@ printf '%s  %s\n' "$SOURCE_SHA256" "$SOURCE_ARCHIVE" | shasum -a 256 -c -
 
 tar -xJf "$SOURCE_ARCHIVE" -C "$WORK_DIR"
 
+# Build the host interpreter used by the cross-build.
 printf 'Building the temporary host Python and fetching Apple dependencies...\n'
 (
     cd "$SOURCE_DIR"
@@ -31,8 +34,9 @@ printf 'Building the temporary host Python and fetching Apple dependencies...\n'
     python3 Apple/__main__.py configure-host iOS arm64-apple-ios
 )
 
-BUILD_PYTHON="$SOURCE_DIR/cross-build/build/python.exe"
+BUILD_PYTHON="$HOST_BUILD_DIR/build/python.exe"
 
+# Configure and build the iOS framework.
 mkdir -p "$TARGET_DIR" "$PACKAGE_ROOT" "$DEB_DIR"
 
 export PATH="$SOURCE_DIR/Apple/iOS/Resources/bin:$DEPS_PREFIX/bin:$PATH"
@@ -68,6 +72,7 @@ printf 'Building CPython with %s jobs...\n' "$JOBS"
     make install DESTDIR="$PACKAGE_ROOT" ENSUREPIP=no
 )
 
+# Install the target interpreter and pip.
 PREFIX="$PACKAGE_ROOT$INSTALL_PREFIX"
 PYTHON_FRAMEWORK="$PACKAGE_ROOT$FRAMEWORK_PREFIX/Python.framework"
 PYTHON_BIN="$PREFIX/bin/python3.14"
@@ -93,11 +98,13 @@ chmod 0755 "$PREFIX/bin/pip"
 ln -sf pip "$PREFIX/bin/pip3"
 ln -sf pip "$PREFIX/bin/pip3.14"
 
+# Sign the packaged binaries.
 strip -x "$PYTHON_BIN"
 strip -x "$PYTHON_FRAMEWORK/Python"
 codesign --force --sign - "$PYTHON_BIN"
 codesign --force --sign - --deep "$PYTHON_FRAMEWORK"
 
+# Assemble and build the Debian package.
 mkdir -p "$DEB_DIR/DEBIAN"
 sed "s/^Version: .*/Version: $VERSION-1/" "$ROOT_DIR/packaging/control.in" \
     > "$DEB_DIR/DEBIAN/control"
