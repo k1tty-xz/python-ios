@@ -137,7 +137,6 @@ printf 'Configuring CPython with Python.framework...\n'
         --with-system-libmpdec \
         --with-openssl="$DEPS_PREFIX" \
         --with-openssl-rpath=no \
-        MODULE_BUILDTYPE=static \
         LDFLAGS="-Wl,-rpath,$FRAMEWORK_PREFIX" \
         LIBMPDEC_CFLAGS="-I$DEPS_PREFIX/include" \
         LIBMPDEC_LIBS="-L$DEPS_PREFIX/lib -lmpdec" \
