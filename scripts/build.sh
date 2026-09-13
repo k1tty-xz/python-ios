@@ -96,6 +96,9 @@ printf 'Building the temporary host Python and fetching Apple dependencies...\n'
 )
 
 BUILD_PYTHON="$SOURCE_DIR/cross-build/build/python"
+if [ ! -f "$BUILD_PYTHON" ]; then
+    BUILD_PYTHON="$SOURCE_DIR/cross-build/build/python.exe"
+fi
 debug "build Python path: $BUILD_PYTHON"
 debug "build Python lookup: $(command -v "$BUILD_PYTHON" 2>&1 || true)"
 if [ -e "$BUILD_PYTHON" ]; then
@@ -110,7 +113,8 @@ if [ -e "$BUILD_PYTHON" ]; then
 else
     debug "build Python does not exist"
 fi
-[ -x "$BUILD_PYTHON" ] || die "host Python was not built: $BUILD_PYTHON"
+[ -f "$BUILD_PYTHON" ] || die "host Python was not built: $BUILD_PYTHON"
+[ -x "$BUILD_PYTHON" ] || die "host Python is not executable: $BUILD_PYTHON"
 [ -d "$DEPS_PREFIX" ] || die "Apple dependency prefix was not created: $DEPS_PREFIX"
 
 mkdir -p "$TARGET_DIR" "$PACKAGE_ROOT" "$DEB_DIR"
