@@ -16,15 +16,6 @@ DEB_DIR="$WORK_DIR/deb"
 DEPS_PREFIX="$SOURCE_DIR/cross-build/arm64-apple-ios/prefix"
 PYTHON_URL="https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tar.xz"
 
-cleanup() {
-    if [ "${KEEP_BUILD:-0}" != 1 ]; then
-        rm -rf "$WORK_DIR"
-    else
-        printf 'Keeping build directory: %s\n' "$WORK_DIR"
-    fi
-}
-trap cleanup EXIT
-
 mkdir -p "$WORK_DIR" "$OUTPUT_DIR"
 
 printf 'Downloading CPython %s...\n' "$VERSION"
