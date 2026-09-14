@@ -108,6 +108,9 @@ codesign --force --sign - --deep "$PYTHON_FRAMEWORK"
 mkdir -p "$DEB_DIR/DEBIAN"
 sed "s/^Version: .*/Version: $VERSION-1/" "$ROOT_DIR/packaging/control.in" \
     > "$DEB_DIR/DEBIAN/control"
+cp "$ROOT_DIR/packaging/postinst" "$DEB_DIR/DEBIAN/postinst"
+cp "$ROOT_DIR/packaging/postrm" "$DEB_DIR/DEBIAN/postrm"
+chmod 0755 "$DEB_DIR/DEBIAN/postinst" "$DEB_DIR/DEBIAN/postrm"
 cp -R "$PACKAGE_ROOT"/. "$DEB_DIR"/
 
 PACKAGE_PATH="$OUTPUT_DIR/python-ios-framework_${VERSION}-1_iphoneos-arm64.deb"

@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+
+case "${1-}" in
+    configure)
+        printf '%s\n' \
+            'Python for rootful iOS installed successfully.' \
+            'Python: /usr/local/bin/python3.14' \
+            'pip: /usr/local/bin/pip'
+        ;;
+esac
+
+exit 0

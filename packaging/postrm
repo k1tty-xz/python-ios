@@ -1,0 +1,13 @@
+#!/bin/sh
+set -e
+
+case "${1-}" in
+    remove|purge)
+        # Remove only package-specific directories, and only when empty.
+        rmdir /usr/local/Frameworks/Python.framework 2>/dev/null || :
+        rmdir /usr/local/Frameworks/include 2>/dev/null || :
+        rmdir /usr/local/Frameworks/bin 2>/dev/null || :
+        ;;
+esac
+
+exit 0
