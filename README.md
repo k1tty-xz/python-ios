@@ -1,3 +1,5 @@
+<img src="assets/python-ios-icon-preview.png" width="64" alt="Python for rootful iOS icon" />
+
 # Python for rootful iOS
 
 A native CPython 3.14 distribution for rootful, jailbroken iOS devices.
