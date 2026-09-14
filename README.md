@@ -1,4 +1,4 @@
-<img src="assets/python-ios-icon-preview.png" width="64" alt="Python for rootful iOS icon" />
+<img src="icon.png" width="64" alt="Python for rootful iOS icon" />
 
 # Python for rootful iOS
 
