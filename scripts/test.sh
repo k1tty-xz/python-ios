@@ -44,5 +44,9 @@ if ! otool -L "$PYTHON_BIN" | grep -E 'Python\.framework/Python' >/dev/null; the
     printf 'error: Python.framework dependency missing from executable\n' >&2
     exit 1
 fi
+if ! otool -L "$PYTHON_BIN" | grep -E 'UIKit\.framework/UIKit' >/dev/null; then
+    printf 'error: UIKit dependency missing from executable; platform.system() cannot identify iOS\n' >&2
+    exit 1
+fi
 
 printf 'Framework package checks passed: %s\n' "$PACKAGE"
