@@ -10,4 +10,4 @@ Priority: optional
 Maintainer: k1tty-xz
 Depends: firmware, ca-certificates
 Homepage: https://www.python.org/
-Icon: https://k1tty-xz.github.io/python-icon.png
+Icon: https://k1tty-xz.github.io/assets/python-ios-icon.png
