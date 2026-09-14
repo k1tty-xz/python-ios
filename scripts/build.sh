@@ -43,7 +43,6 @@ export PATH="$SOURCE_DIR/Apple/iOS/Resources/bin:$DEPS_PREFIX/bin:$PATH"
 printf 'Configuring CPython with Python.framework...\n'
 (
     cd "$TARGET_DIR"
-    # _ios_support.py discovers UIDevice dynamically, so force UIKit to load.
     "$SOURCE_DIR/configure" \
         --host=arm64-apple-ios \
         --build="$(uname -m)-apple-darwin" \
