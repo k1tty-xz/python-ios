@@ -23,7 +23,7 @@ PREFIX="$ROOT/usr/local"
 FRAMEWORK_ROOT="$PREFIX/Frameworks"
 PYTHON_FRAMEWORK="$FRAMEWORK_ROOT/Python.framework"
 PYTHON_BIN="$PREFIX/bin/python3.14"
-DYNLOAD_DIR="$PREFIX/lib/python3.14/lib-dynload"
+DYNLOAD_DIR="$FRAMEWORK_ROOT/lib/python3.14/lib-dynload"
 
 [ -x "$PYTHON_BIN" ]
 [ -L "$PREFIX/bin/python3" ]
