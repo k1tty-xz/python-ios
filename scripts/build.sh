@@ -76,6 +76,7 @@ printf 'Building CPython with %s jobs...\n' "$JOBS"
 PREFIX="$PACKAGE_ROOT$INSTALL_PREFIX"
 PYTHON_FRAMEWORK="$PACKAGE_ROOT$FRAMEWORK_PREFIX/Python.framework"
 PYTHON_BIN="$PREFIX/bin/python3.14"
+DYNLOAD_DIR="$PACKAGE_ROOT$FRAMEWORK_PREFIX/lib/python3.14/lib-dynload"
 TARGET_PYTHON="$TARGET_DIR/python.exe"
 mkdir -p "$PREFIX/bin"
 cp "$TARGET_PYTHON" "$PYTHON_BIN"
@@ -103,6 +104,7 @@ strip -x "$PYTHON_BIN"
 strip -x "$PYTHON_FRAMEWORK/Python"
 codesign --force --sign - "$PYTHON_BIN"
 codesign --force --sign - --deep "$PYTHON_FRAMEWORK"
+find "$DYNLOAD_DIR" -type f -name '*.so' -exec codesign --force --sign - {} \;
 
 # Assemble and build the Debian package.
 mkdir -p "$DEB_DIR/DEBIAN"
@@ -113,7 +115,7 @@ cp "$ROOT_DIR/packaging/postrm" "$DEB_DIR/DEBIAN/postrm"
 chmod 0755 "$DEB_DIR/DEBIAN/postinst" "$DEB_DIR/DEBIAN/postrm"
 cp -R "$PACKAGE_ROOT"/. "$DEB_DIR"/
 
-PACKAGE_PATH="$OUTPUT_DIR/python-ios-framework_${VERSION}-1_iphoneos-arm64.deb"
+PACKAGE_PATH="$OUTPUT_DIR/python-ios-framework_${VERSION}-1_iphoneos-arm.deb"
 rm -f "$PACKAGE_PATH"
 dpkg-deb --build --root-owner-group "$DEB_DIR" "$PACKAGE_PATH"
 
