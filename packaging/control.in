@@ -1,13 +1,13 @@
 Package: com.python.ios.framework
-Name: Python3.14.7
-Version: 3.14.7-1
-Architecture: iphoneos-arm
-Description: CPython 3.14 framework for rootful iOS
- An arm64 CPython runtime for rootful iOS, including Python.framework, the
+Name: Python @PYTHON_VERSION@
+Version: @PACKAGE_VERSION@
+Architecture: @ARCHITECTURE@
+Description: CPython @PYTHON_VERSION@ framework for @SCHEME@ iOS
+ An arm64 CPython runtime for @SCHEME@ iOS, including Python.framework, the
  standard library, and pip.
 Section: interpreters
 Priority: optional
 Maintainer: k1tty-xz
-Depends: firmware, ca-certificates
+Depends: firmware (>= @MIN_IOS@), ca-certificates
 Homepage: https://www.python.org/
 Icon: https://k1tty-xz.github.io/assets/python-ios-icon.png

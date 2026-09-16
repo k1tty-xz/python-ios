@@ -1,12 +1,12 @@
-#!/bin/sh
+#!@SHELL@
 set -e
 
 case "${1-}" in
     configure)
         printf '%s\n' \
-            'Python for rootful iOS installed successfully.' \
-            'Python: /usr/local/bin/python3.14' \
-            'pip: /usr/local/bin/pip'
+            'Python for @SCHEME@ iOS installed successfully.' \
+            'Python: @INSTALL_PREFIX@/bin/python@PYTHON_VERSION@' \
+            'pip: @INSTALL_PREFIX@/bin/pip'
         ;;
 esac
 

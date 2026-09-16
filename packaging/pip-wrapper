@@ -1,2 +1,2 @@
-#!/bin/sh
-exec /usr/local/bin/python3.14 -m pip "$@"
+#!@SHELL@
+exec @INSTALL_PREFIX@/bin/python@PYTHON_VERSION@ -m pip "$@"
