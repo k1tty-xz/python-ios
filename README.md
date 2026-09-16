@@ -26,10 +26,14 @@ Run Python or pip with its full path:
 /var/jb/usr/local/bin/pip
 ```
 
-Check pip with:
+Check pip with the path for your jailbreak:
 
 ```sh
+# Rootful
 /usr/local/bin/python3 -m pip --version
+
+# Rootless
+/var/jb/usr/local/bin/python3 -m pip --version
 ```
 
 > **Warning:** Add the corresponding `bin` directory to `PATH` only if you
