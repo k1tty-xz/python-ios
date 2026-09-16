@@ -4,8 +4,13 @@ set -eu
 ROOT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 VERSION=$(tr -d '[:space:]' < "$ROOT_DIR/CPYTHON_VERSION")
 SOURCE_SHA256=$(tr -d '[:space:]' < "$ROOT_DIR/CPYTHON_SHA256")
+PYTHON_VERSION=${VERSION%.*}
+PACKAGE_VERSION="$VERSION-1"
+
 WORK_DIR=${WORK_DIR:-"$(mktemp -d "${TMPDIR:-/tmp}/python-ios-build.XXXXXX")"}
 OUTPUT_DIR=${OUTPUT_DIR:-"$ROOT_DIR/dist"}
+JOBS=${JOBS:-$(sysctl -n hw.ncpu)}
+
 INSTALL_PREFIX=/usr/local
 FRAMEWORK_PREFIX="$INSTALL_PREFIX/Frameworks"
 SOURCE_ARCHIVE="$WORK_DIR/Python-$VERSION.tar.xz"
@@ -13,32 +18,27 @@ SOURCE_DIR="$WORK_DIR/Python-$VERSION"
 HOST_BUILD_DIR="$SOURCE_DIR/cross-build"
 TARGET_DIR="$WORK_DIR/target"
 PACKAGE_ROOT="$WORK_DIR/package-root"
-DEB_DIR="$WORK_DIR/deb"
 DEPS_PREFIX="$HOST_BUILD_DIR/arm64-apple-ios/prefix"
-PYTHON_URL="https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tar.xz"
+BUILD_PYTHON="$HOST_BUILD_DIR/build/python.exe"
 
-# Download and unpack CPython.
-mkdir -p "$WORK_DIR" "$OUTPUT_DIR"
-
+# Download and verify CPython before extracting it.
+mkdir -p "$WORK_DIR" "$OUTPUT_DIR" "$TARGET_DIR" "$PACKAGE_ROOT"
 printf 'Downloading CPython %s...\n' "$VERSION"
-curl --fail --location --retry 3 --output "$SOURCE_ARCHIVE" "$PYTHON_URL"
+curl --fail --location --retry 3 \
+    --output "$SOURCE_ARCHIVE" \
+    "https://www.python.org/ftp/python/$VERSION/Python-$VERSION.tar.xz"
 printf '%s  %s\n' "$SOURCE_SHA256" "$SOURCE_ARCHIVE" | shasum -a 256 -c -
-
 tar -xJf "$SOURCE_ARCHIVE" -C "$WORK_DIR"
 
-# Build the host interpreter used by the cross-build.
-printf 'Building the temporary host Python and fetching Apple dependencies...\n'
+# Build the host interpreter and fetch the Apple dependencies.
+printf 'Preparing the host Python and Apple dependencies...\n'
 (
     cd "$SOURCE_DIR"
     python3 Apple/__main__.py build iOS build
     python3 Apple/__main__.py configure-host iOS arm64-apple-ios
 )
 
-BUILD_PYTHON="$HOST_BUILD_DIR/build/python.exe"
-
-# Configure and build the iOS framework.
-mkdir -p "$TARGET_DIR" "$PACKAGE_ROOT" "$DEB_DIR"
-
+# Build and stage the iOS framework.
 export PATH="$SOURCE_DIR/Apple/iOS/Resources/bin:$DEPS_PREFIX/bin:$PATH"
 printf 'Configuring CPython with Python.framework...\n'
 (
@@ -63,27 +63,24 @@ printf 'Configuring CPython with Python.framework...\n'
         LIBFFI_LIBS="-L$DEPS_PREFIX/lib -lffi" \
         LIBZSTD_CFLAGS="-I$DEPS_PREFIX/include" \
         LIBZSTD_LIBS="-L$DEPS_PREFIX/lib -lzstd"
-)
 
-JOBS=${JOBS:-$(sysctl -n hw.ncpu)}
-printf 'Building CPython with %s jobs...\n' "$JOBS"
-(
-    cd "$TARGET_DIR"
+    printf 'Building CPython with %s jobs...\n' "$JOBS"
     make -j"$JOBS"
     make install DESTDIR="$PACKAGE_ROOT" ENSUREPIP=no
 )
 
-# Install the target interpreter and pip.
-PREFIX="$PACKAGE_ROOT$INSTALL_PREFIX"
+# Install the interpreter and command wrappers.
+BIN_DIR="$PACKAGE_ROOT$INSTALL_PREFIX/bin"
+PYTHON_BIN="$BIN_DIR/python$PYTHON_VERSION"
 PYTHON_FRAMEWORK="$PACKAGE_ROOT$FRAMEWORK_PREFIX/Python.framework"
-PYTHON_BIN="$PREFIX/bin/python3.14"
-DYNLOAD_DIR="$PACKAGE_ROOT$FRAMEWORK_PREFIX/lib/python3.14/lib-dynload"
-TARGET_PYTHON="$TARGET_DIR/python.exe"
-mkdir -p "$PREFIX/bin"
-cp "$TARGET_PYTHON" "$PYTHON_BIN"
+DYNLOAD_DIR="$PACKAGE_ROOT$FRAMEWORK_PREFIX/lib/python$PYTHON_VERSION/lib-dynload"
 
-# The bundled pip wheel is installed by the host interpreter so the target
-# executable is never run during the cross-build.
+mkdir -p "$BIN_DIR"
+cp "$TARGET_DIR/python.exe" "$PYTHON_BIN"
+ln -sf "python$PYTHON_VERSION" "$BIN_DIR/python3"
+ln -sf "python$PYTHON_VERSION" "$BIN_DIR/python"
+
+# Use the host interpreter: the iOS executable cannot run during the build.
 set -- "$SOURCE_DIR"/Lib/ensurepip/_bundled/pip-*.whl
 PYTHONPATH="$1" "$BUILD_PYTHON" -m pip install \
     --no-cache-dir \
@@ -92,32 +89,27 @@ PYTHONPATH="$1" "$BUILD_PYTHON" -m pip install \
     --root="$PACKAGE_ROOT" \
     "$1"
 
-ln -sf python3.14 "$PREFIX/bin/python3"
-ln -sf python3.14 "$PREFIX/bin/python"
-rm -f "$PREFIX/bin/pip3.14" "$PREFIX/bin/pip3" "$PREFIX/bin/pip"
-cp "$ROOT_DIR/packaging/pip-wrapper" "$PREFIX/bin/pip"
-chmod 0755 "$PREFIX/bin/pip"
-ln -sf pip "$PREFIX/bin/pip3"
-ln -sf pip "$PREFIX/bin/pip3.14"
+rm -f "$BIN_DIR/pip$PYTHON_VERSION" "$BIN_DIR/pip3" "$BIN_DIR/pip"
+cp "$ROOT_DIR/packaging/pip-wrapper" "$BIN_DIR/pip"
+chmod 0755 "$BIN_DIR/pip"
+ln -sf pip "$BIN_DIR/pip3"
+ln -sf pip "$BIN_DIR/pip$PYTHON_VERSION"
 
-# Sign the packaged binaries.
+# Strip before signing so the signatures remain valid.
 strip -x "$PYTHON_BIN"
 strip -x "$PYTHON_FRAMEWORK/Python"
 codesign --force --sign - "$PYTHON_BIN"
 codesign --force --sign - --deep "$PYTHON_FRAMEWORK"
 find "$DYNLOAD_DIR" -type f -name '*.so' -exec codesign --force --sign - {} \;
 
-# Assemble and build the Debian package.
-mkdir -p "$DEB_DIR/DEBIAN"
-sed "s/^Version: .*/Version: $VERSION-1/" "$ROOT_DIR/packaging/control.in" \
-    > "$DEB_DIR/DEBIAN/control"
-cp "$ROOT_DIR/packaging/postinst" "$DEB_DIR/DEBIAN/postinst"
-cp "$ROOT_DIR/packaging/postrm" "$DEB_DIR/DEBIAN/postrm"
-chmod 0755 "$DEB_DIR/DEBIAN/postinst" "$DEB_DIR/DEBIAN/postrm"
-cp -R "$PACKAGE_ROOT"/. "$DEB_DIR"/
+# Add Debian metadata directly to the staged installation.
+mkdir -p "$PACKAGE_ROOT/DEBIAN"
+sed "s/^Version: .*/Version: $PACKAGE_VERSION/" "$ROOT_DIR/packaging/control.in" \
+    > "$PACKAGE_ROOT/DEBIAN/control"
+cp "$ROOT_DIR/packaging/postinst" "$ROOT_DIR/packaging/postrm" "$PACKAGE_ROOT/DEBIAN/"
+chmod 0755 "$PACKAGE_ROOT/DEBIAN/postinst" "$PACKAGE_ROOT/DEBIAN/postrm"
 
-PACKAGE_PATH="$OUTPUT_DIR/python-ios-framework_${VERSION}-1_iphoneos-arm.deb"
+PACKAGE_PATH="$OUTPUT_DIR/python-ios-framework_${PACKAGE_VERSION}_iphoneos-arm.deb"
 rm -f "$PACKAGE_PATH"
-dpkg-deb --build --root-owner-group "$DEB_DIR" "$PACKAGE_PATH"
-
+dpkg-deb --build --root-owner-group "$PACKAGE_ROOT" "$PACKAGE_PATH"
 printf 'Built: %s\n' "$PACKAGE_PATH"
