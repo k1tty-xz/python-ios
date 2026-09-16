@@ -16,13 +16,22 @@ jobs:
           persist-credentials: false
       - name: Install Debian packaging tools
         run: brew install dpkg
-      - name: Build package
+      - name: Build rootful and rootless packages
         run: ./scripts/build.sh
-      - name: Verify package
-        run: ./scripts/test.sh dist/python-ios-framework_3.14.7-1_iphoneos-arm.deb
-      - name: Upload package
+      - name: Verify packages
+        run: |
+          for package in dist/*.deb; do
+            ./scripts/test.sh "$package"
+          done
+      - name: Upload rootful package
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          path: dist/*.deb
+          path: dist/*_iphoneos-arm.deb
+          archive: false
+          if-no-files-found: error
+      - name: Upload rootless package
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          path: dist/*_iphoneos-arm64.deb
           archive: false
           if-no-files-found: error
