@@ -14,16 +14,14 @@ Download and install the package that matches your jailbreak:
 | Rootful | `_iphoneos-arm.deb` | `/usr/local` |
 | Rootless (iOS 15+) | `_iphoneos-arm64.deb` | `/var/jb/usr/local` |
 
-Run Python or pip with its full path:
+Run Python with its full path:
 
 ```sh
 # Rootful
 /usr/local/bin/python3
-/usr/local/bin/pip
 
 # Rootless
 /var/jb/usr/local/bin/python3
-/var/jb/usr/local/bin/pip
 ```
 
 Check pip with the path for your jailbreak:
@@ -37,8 +35,7 @@ Check pip with the path for your jailbreak:
 ```
 
 > **Warning:** Add the corresponding `bin` directory to `PATH` only if you
-> want this installation's `python3` and `pip` commands to be the defaults
-> on your device.
+> want this installation's `python3` command to be the default on your device.
 
 ## Build
 
