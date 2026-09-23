@@ -87,14 +87,11 @@ build_package() (
         cd "$TARGET_DIR"
         PATH="$SOURCE_DIR/Apple/iOS/Resources/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin"
         export PATH
-        
+
         "$SOURCE_DIR/configure" \
             --host="arm64-apple-ios$MIN_IOS" \
-            --build="$(uname -m)-apple-darwin" \
             --with-build-python="$BUILD_PYTHON" \
             --enable-framework="$FRAMEWORK_PREFIX" \
-            --disable-test-modules \
-            --with-system-libmpdec \
             --with-openssl="$DEPS_PREFIX" \
             LDFLAGS="-Wl,-rpath,$FRAMEWORK_PREFIX" \
             LIBS="-Wl,-needed_framework,UIKit" \
