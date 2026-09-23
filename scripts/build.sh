@@ -79,6 +79,7 @@ build_package() (
             --with-build-python="$BUILD_PYTHON" \
             --enable-framework="$FRAMEWORK_PREFIX" \
             --with-openssl="$DEPS_PREFIX" \
+            --disable-test-modules \
             LDFLAGS="-Wl,-rpath,$FRAMEWORK_PREFIX" \
             LIBS="-Wl,-needed_framework,UIKit" \
             LIBMPDEC_CFLAGS="-I$DEPS_PREFIX/include" \
