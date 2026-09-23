@@ -43,8 +43,6 @@ printf 'Preparing the host Python and Apple dependencies...\n'
     python3 Apple/__main__.py configure-host iOS arm64-apple-ios
 )
 
-export PATH="$SOURCE_DIR/Apple/iOS/Resources/bin:$DEPS_PREFIX/bin:$PATH"
-
 # These templates share the same paths and metadata for each package.
 render_template() {
     sed \
@@ -87,6 +85,9 @@ build_package() (
     printf 'Configuring CPython with Python.framework...\n'
     (
         cd "$TARGET_DIR"
+        PATH="$SOURCE_DIR/Apple/iOS/Resources/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin"
+        export PATH
+        
         "$SOURCE_DIR/configure" \
             --host="arm64-apple-ios$MIN_IOS" \
             --build="$(uname -m)-apple-darwin" \
@@ -119,8 +120,8 @@ build_package() (
 
     mkdir -p "$BIN_DIR"
     cp "$TARGET_DIR/python.exe" "$PYTHON_BIN"
-    ln -sf "python$PYTHON_VERSION" "$BIN_DIR/python3"
-    ln -sf "python$PYTHON_VERSION" "$BIN_DIR/python"
+    ln -s "python$PYTHON_VERSION" "$BIN_DIR/python3"
+    ln -s "python$PYTHON_VERSION" "$BIN_DIR/python"
 
     # Use the host interpreter: the iOS executable cannot run during the build.
     set -- "$SOURCE_DIR"/Lib/ensurepip/_bundled/pip-*.whl
@@ -128,16 +129,14 @@ build_package() (
         --no-index \
         --no-deps \
         --ignore-installed \
-        --no-cache-dir \
         --prefix="$FRAMEWORK_PREFIX" \
         --root="$PACKAGE_ROOT" \
         "$1"
 
-    rm -f "$BIN_DIR/pip$PYTHON_VERSION" "$BIN_DIR/pip3" "$BIN_DIR/pip"
     render_template "$ROOT_DIR/packaging/pip-wrapper" > "$BIN_DIR/pip"
     chmod 0755 "$BIN_DIR/pip"
-    ln -sf pip "$BIN_DIR/pip3"
-    ln -sf pip "$BIN_DIR/pip$PYTHON_VERSION"
+    ln -s pip "$BIN_DIR/pip3"
+    ln -s pip "$BIN_DIR/pip$PYTHON_VERSION"
 
     # Remove pip entry points containing the temporary host interpreter's path.
     rm -f "$PACKAGE_ROOT$FRAMEWORK_PREFIX/bin/pip" \
@@ -148,7 +147,7 @@ build_package() (
     strip -x "$PYTHON_BIN"
     strip -x "$PYTHON_FRAMEWORK/Python"
     codesign --force --sign - "$PYTHON_BIN"
-    codesign --force --sign - --deep "$PYTHON_FRAMEWORK"
+    codesign --force --sign - "$PYTHON_FRAMEWORK"
     find "$DYNLOAD_DIR" -type f -name '*.so' -exec sh -ec '
         for binary do codesign --force --sign - "$binary"; done
     ' sh {} +
