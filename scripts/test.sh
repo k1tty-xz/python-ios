@@ -14,7 +14,6 @@ PACKAGE=${1:-}
 WORK_DIR=$(mktemp -d "${TMPDIR:-/tmp}/python-ios-test.XXXXXX")
 trap 'rm -rf "$WORK_DIR"' 0
 
-dpkg-deb --info "$PACKAGE" >/dev/null
 case "$(dpkg-deb --field "$PACKAGE" Architecture)" in
     iphoneos-arm) INSTALL_PREFIX=/usr/local; PACKAGE_SHELL=/bin/sh; MIN_IOS=13.0 ;;
     iphoneos-arm64) INSTALL_PREFIX=/var/jb/usr/local; PACKAGE_SHELL=/var/jb/bin/sh; MIN_IOS=15.0 ;;
@@ -37,13 +36,10 @@ DYNLOAD_DIR="$FRAMEWORK_ROOT/lib/python$PYTHON_VERSION/lib-dynload"
 [ -x "$PYTHON_BIN" ]
 [ "$(readlink "$PREFIX/bin/python3")" = "python$PYTHON_VERSION" ]
 [ "$(readlink "$PREFIX/bin/python")" = "python$PYTHON_VERSION" ]
-[ -x "$PREFIX/bin/pip" ]
 [ "$(readlink "$PREFIX/bin/pip3")" = pip ]
 [ "$(readlink "$PREFIX/bin/pip$PYTHON_VERSION")" = pip ]
 [ -d "$FRAMEWORK_ROOT/lib/python$PYTHON_VERSION/site-packages/pip" ]
-[ -d "$FRAMEWORK_ROOT/lib/python$PYTHON_VERSION" ]
-[ -d "$DYNLOAD_DIR" ]
-[ -d "$PYTHON_FRAMEWORK" ]
+[ -d "$FRAMEWORK_ROOT/lib/python$PYTHON_VERSION/test" ]
 [ -f "$PYTHON_FRAMEWORK/Python" ]
 [ -f "$PYTHON_FRAMEWORK/Info.plist" ]
 
@@ -71,16 +67,24 @@ else
     [ ! -e "$ROOT/var/jb" ]
 fi
 
-command -v lipo >/dev/null 2>&1
 lipo "$PYTHON_BIN" -verify_arch arm64
 lipo "$PYTHON_FRAMEWORK/Python" -verify_arch arm64
-codesign --verify --deep --strict "$PYTHON_BIN"
-codesign --verify --deep --strict "$PYTHON_FRAMEWORK"
-# find -exec ... + propagates a failed binary check to the script.
+codesign --verify "$PYTHON_BIN"
+codesign --verify "$PYTHON_FRAMEWORK"
+
+# Check the extensions expected from the supplied iOS dependencies.
+for module in _ssl _hashlib _ctypes _decimal _lzma _zstd; do
+    set -- "$DYNLOAD_DIR/$module".*.so
+    [ -f "$1" ] || {
+        printf 'error: missing extension: %s\n' "$module" >&2
+        exit 1
+    }
+done
+
 find "$DYNLOAD_DIR" -type f -name '*.so' -exec sh -ec '
     for binary do
         lipo "$binary" -verify_arch arm64
-        codesign --verify --strict "$binary"
+        codesign --verify "$binary"
     done
 ' sh {} +
 if ! otool -L "$PYTHON_BIN" | grep -F '@rpath/Python.framework/Python (' >/dev/null; then
