@@ -93,10 +93,8 @@ build_package() (
             --with-build-python="$BUILD_PYTHON" \
             --enable-framework="$FRAMEWORK_PREFIX" \
             --disable-test-modules \
-            --with-ensurepip=no \
             --with-system-libmpdec \
             --with-openssl="$DEPS_PREFIX" \
-            --with-openssl-rpath=no \
             LDFLAGS="-Wl,-rpath,$FRAMEWORK_PREFIX" \
             LIBS="-Wl,-needed_framework,UIKit" \
             LIBMPDEC_CFLAGS="-I$DEPS_PREFIX/include" \
@@ -110,7 +108,7 @@ build_package() (
 
         printf 'Building CPython with %s jobs...\n' "$JOBS"
         make -j"$JOBS"
-        make install DESTDIR="$PACKAGE_ROOT" ENSUREPIP=no
+        make install DESTDIR="$PACKAGE_ROOT"
     )
 
     # Install the interpreter and command wrappers.
@@ -131,7 +129,6 @@ build_package() (
         --no-deps \
         --ignore-installed \
         --no-cache-dir \
-        --no-warn-script-location \
         --prefix="$FRAMEWORK_PREFIX" \
         --root="$PACKAGE_ROOT" \
         "$1"
