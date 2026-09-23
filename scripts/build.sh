@@ -89,7 +89,8 @@ build_package() (
         export PATH
 
         "$SOURCE_DIR/configure" \
-            --host="arm64-apple-ios$MIN_IOS" \
+            --host=arm64-apple-ios \
+            --build="$(uname -m)-apple-darwin" \
             --with-build-python="$BUILD_PYTHON" \
             --enable-framework="$FRAMEWORK_PREFIX" \
             --with-openssl="$DEPS_PREFIX" \
