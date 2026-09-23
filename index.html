@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#09090b">
+  <meta name="description" content="CPython 3.14 for ARM64 jailbroken iOS, with Python.framework, the standard library, and pip.">
+  <title>Python for iOS</title>
+  <link rel="icon" type="image/png" href="./icon.png">
+  <style>
+    :root {
+      color-scheme: dark;
+      --background: #09090b;
+      --foreground: #f5f5f7;
+      --secondary: #a1a1a6;
+      --separator: #343437;
+      --python-yellow: #ffd43b;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100svh;
+      margin: 0;
+      background: var(--background);
+      color: var(--foreground);
+      font: 16px/1.5 Arial, Helvetica, sans-serif;
+    }
+
+    a { color: inherit; text-underline-offset: 4px; }
+    a:hover { color: var(--python-yellow); }
+    a:focus-visible { outline: 2px solid var(--python-yellow); outline-offset: 4px; }
+
+    code {
+      font-family: "Courier New", Courier, monospace;
+      font-size: 0.92em;
+    }
+
+    .page {
+      width: min(100%, 1320px);
+      min-height: 100svh;
+      margin: 0 auto;
+      padding: 0 clamp(22px, 5.4vw, 76px) 30px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .topbar {
+      min-height: 76px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      border-bottom: 1px solid var(--separator);
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      min-height: 44px;
+      color: var(--foreground);
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      text-decoration: none;
+    }
+
+    .brand img { display: block; width: 28px; height: 28px; }
+
+    .topbar nav { display: flex; align-items: center; gap: 25px; }
+
+    .topbar nav a {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      color: var(--secondary);
+      font-size: 14px;
+      text-decoration: none;
+    }
+
+    .topbar nav a:last-child { color: var(--python-yellow); }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(250px, 0.8fr);
+      align-items: end;
+      column-gap: clamp(36px, 7vw, 104px);
+      padding: clamp(56px, 9vh, 94px) 0 clamp(48px, 7vh, 76px);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(62px, 8vw, 106px);
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      line-height: 0.98;
+    }
+
+    h1 span { display: block; }
+
+    .hero-copy { max-width: 390px; padding-bottom: 5px; }
+
+    .hero-copy p {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.5;
+    }
+
+    .hero-copy .included {
+      margin-top: 12px;
+      color: var(--secondary);
+      font-size: 15px;
+    }
+
+    .releases-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 44px;
+      margin-top: 17px;
+      color: var(--python-yellow);
+      font-size: 15px;
+      font-weight: 600;
+      text-decoration: none;
+    }
+
+    .releases-link span { font-size: 18px; }
+
+    .packages { margin-top: clamp(56px, 8vh, 88px); }
+
+    .content { display: flex; flex: 1; flex-direction: column; }
+
+    .packages-heading {
+      margin: 0;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--separator);
+      font-size: 23px;
+      font-weight: 600;
+      letter-spacing: -0.025em;
+    }
+
+    .package-grid { display: grid; grid-template-columns: 1fr 1fr; }
+
+    .package {
+      min-width: 0;
+      padding: 22px 32px 16px 0;
+    }
+
+    .package + .package {
+      padding-right: 0;
+      padding-left: clamp(24px, 4.7vw, 62px);
+      border-left: 1px solid var(--separator);
+    }
+
+    .package-heading {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .package-heading h3 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.025em; }
+
+    .minimum-ios { color: var(--secondary); font-size: 14px; white-space: nowrap; }
+
+    .package-details {
+      display: grid;
+      grid-template-columns: max-content minmax(0, 1fr);
+      gap: 5px 15px;
+      margin: 13px 0 0;
+      font-size: 14px;
+    }
+
+    .package-details dt { color: var(--secondary); }
+    .package-details dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+
+    .commands { display: grid; gap: 7px; margin-top: 18px; }
+
+    .command {
+      display: grid;
+      grid-template-columns: 52px minmax(0, 1fr);
+      align-items: baseline;
+      gap: 10px;
+      margin: 0;
+      color: var(--secondary);
+      font-size: 13px;
+    }
+
+    .command code {
+      min-width: 0;
+      color: var(--foreground);
+      font-size: 13px;
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 760px) {
+      .page { padding-inline: clamp(20px, 5vw, 38px); padding-bottom: 22px; }
+      .topbar { min-height: 68px; }
+      .topbar nav { gap: clamp(15px, 5vw, 25px); }
+      .hero {
+        grid-template-columns: 1fr;
+        gap: 24px;
+        padding: 44px 0 37px;
+      }
+      h1 { max-width: 10ch; font-size: clamp(54px, 12vw, 78px); line-height: 0.94; }
+      .hero-copy { max-width: 480px; padding: 0; }
+      .hero-copy p { font-size: 17px; }
+      .hero-copy .included { margin-top: 7px; font-size: 14px; }
+      .releases-link { margin-top: 8px; }
+      .content { flex: initial; }
+      .packages { margin-top: 0; }
+      .package-grid { grid-template-columns: 1fr; }
+      .packages-heading { padding-bottom: 12px; font-size: 20px; }
+      .package { padding: 18px 0 21px; }
+      .package + .package { padding-left: 0; border-top: 1px solid var(--separator); border-left: 0; }
+      .package-heading h3 { font-size: 20px; }
+      .package-details { margin-top: 10px; }
+      .commands { gap: 5px; margin-top: 13px; }
+      .command { grid-template-columns: 46px minmax(0, 1fr); }
+    }
+
+    @media (max-width: 380px) {
+      .page { padding-inline: 17px; }
+      .brand { gap: 8px; font-size: 14px; }
+      .brand img { width: 25px; height: 25px; }
+      .topbar nav { gap: 13px; }
+      .hero { padding-top: 35px; }
+      h1 { font-size: 52px; }
+      .package-heading { gap: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header class="topbar">
+      <a class="brand" href="./">
+        <img src="./icon.png" alt="" width="28" height="28">
+        <span>python-ios</span>
+      </a>
+      <nav aria-label="Project links">
+        <a href="https://github.com/k1tty-xz/python-ios">Source</a>
+      </nav>
+    </header>
+
+    <main class="content">
+      <section class="hero" aria-labelledby="page-title">
+        <h1 id="page-title">Python <span>for iOS.</span></h1>
+        <div class="hero-copy">
+          <p>CPython 3.14 for ARM64 jailbroken devices.</p>
+          <p class="included">Python.framework, the standard library, and pip are included.</p>
+          <a class="releases-link" href="https://github.com/k1tty-xz/python-ios/releases">
+            View releases <span aria-hidden="true">↗</span>
+          </a>
+        </div>
+      </section>
+
+      <section class="packages" aria-labelledby="packages-title">
+        <h2 class="packages-heading" id="packages-title">Choose a package</h2>
+        <div class="package-grid">
+        <article class="package" aria-labelledby="rootful-title">
+          <div class="package-heading">
+            <h3 id="rootful-title">Rootful</h3>
+            <span class="minimum-ios">iOS 13+</span>
+          </div>
+          <dl class="package-details">
+            <dt>Package</dt><dd><code>_iphoneos-arm.deb</code></dd>
+            <dt>Install path</dt><dd><code>/usr/local</code></dd>
+          </dl>
+          <div class="commands" role="group" aria-label="Rootful commands">
+            <p class="command"><span>Python</span><code>/usr/local/bin/python3</code></p>
+            <p class="command"><span>pip</span><code>/usr/local/bin/python3 -m pip --version</code></p>
+          </div>
+        </article>
+
+        <article class="package" aria-labelledby="rootless-title">
+          <div class="package-heading">
+            <h3 id="rootless-title">Rootless</h3>
+            <span class="minimum-ios">iOS 15+</span>
+          </div>
+          <dl class="package-details">
+            <dt>Package</dt><dd><code>_iphoneos-arm64.deb</code></dd>
+            <dt>Install path</dt><dd><code>/var/jb/usr/local</code></dd>
+          </dl>
+          <div class="commands" role="group" aria-label="Rootless commands">
+            <p class="command"><span>Python</span><code>/var/jb/usr/local/bin/python3</code></p>
+            <p class="command"><span>pip</span><code>/var/jb/usr/local/bin/python3 -m pip --version</code></p>
+          </div>
+        </article>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
