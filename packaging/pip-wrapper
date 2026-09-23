@@ -1,2 +1,0 @@
-#!@SHELL@
-exec @INSTALL_PREFIX@/bin/python@PYTHON_VERSION@ -m pip "$@"
