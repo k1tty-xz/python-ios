@@ -43,32 +43,17 @@ printf 'Preparing the host Python and Apple dependencies...\n'
     python3 Apple/__main__.py configure-host iOS arm64-apple-ios
 )
 
-# These templates share the same paths and metadata for each package.
-render_template() {
-    sed \
-        -e "s|@SHELL@|$PACKAGE_SHELL|g" \
-        -e "s|@INSTALL_PREFIX@|$INSTALL_PREFIX|g" \
-        -e "s|@PYTHON_VERSION@|$PYTHON_VERSION|g" \
-        -e "s|@PACKAGE_VERSION@|$PACKAGE_VERSION|g" \
-        -e "s|@ARCHITECTURE@|$ARCHITECTURE|g" \
-        -e "s|@SCHEME@|$SCHEME|g" \
-        -e "s|@MIN_IOS@|$MIN_IOS|g" \
-        "$1"
-}
-
 # A subshell keeps each build's paths and configuration separate.
 build_package() (
     SCHEME=$1
     case "$SCHEME" in
         rootful)
             INSTALL_PREFIX=/usr/local
-            PACKAGE_SHELL=/bin/sh
             ARCHITECTURE=iphoneos-arm
             MIN_IOS=13.0
             ;;
         rootless)
             INSTALL_PREFIX=/var/jb/usr/local
-            PACKAGE_SHELL=/var/jb/bin/sh
             ARCHITECTURE=iphoneos-arm64
             MIN_IOS=15.0
             ;;
@@ -110,7 +95,7 @@ build_package() (
         make install DESTDIR="$PACKAGE_ROOT"
     )
 
-    # Install the interpreter and command wrappers.
+    # Install the interpreter and pip module.
     BIN_DIR="$PACKAGE_ROOT$INSTALL_PREFIX/bin"
     PYTHON_BIN="$BIN_DIR/python$PYTHON_VERSION"
     PYTHON_FRAMEWORK="$PACKAGE_ROOT$FRAMEWORK_PREFIX/Python.framework"
@@ -131,11 +116,6 @@ build_package() (
         --root="$PACKAGE_ROOT" \
         "$1"
 
-    render_template "$ROOT_DIR/packaging/pip-wrapper" > "$BIN_DIR/pip"
-    chmod 0755 "$BIN_DIR/pip"
-    ln -s pip "$BIN_DIR/pip3"
-    ln -s pip "$BIN_DIR/pip$PYTHON_VERSION"
-
     # Remove pip entry points containing the temporary host interpreter's path.
     rm -f "$PACKAGE_ROOT$FRAMEWORK_PREFIX/bin/pip" \
         "$PACKAGE_ROOT$FRAMEWORK_PREFIX/bin/pip3" \
@@ -152,11 +132,13 @@ build_package() (
 
     # Add Debian metadata directly to the staged installation.
     mkdir -p "$PACKAGE_ROOT/DEBIAN"
-    render_template "$ROOT_DIR/packaging/control.in" > "$PACKAGE_ROOT/DEBIAN/control"
-    for script in postinst postrm; do
-        render_template "$ROOT_DIR/packaging/$script" > "$PACKAGE_ROOT/DEBIAN/$script"
-    done
-    chmod 0755 "$PACKAGE_ROOT/DEBIAN/postinst" "$PACKAGE_ROOT/DEBIAN/postrm"
+    sed \
+        -e "s|@PYTHON_VERSION@|$PYTHON_VERSION|g" \
+        -e "s|@PACKAGE_VERSION@|$PACKAGE_VERSION|g" \
+        -e "s|@ARCHITECTURE@|$ARCHITECTURE|g" \
+        -e "s|@SCHEME@|$SCHEME|g" \
+        -e "s|@MIN_IOS@|$MIN_IOS|g" \
+        "$ROOT_DIR/packaging/control.in" > "$PACKAGE_ROOT/DEBIAN/control"
 
     PACKAGE_PATH="$OUTPUT_DIR/python-ios-framework_${PACKAGE_VERSION}_${ARCHITECTURE}.deb"
     rm -f "$PACKAGE_PATH"
