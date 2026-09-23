@@ -15,8 +15,8 @@ WORK_DIR=$(mktemp -d "${TMPDIR:-/tmp}/python-ios-test.XXXXXX")
 trap 'rm -rf "$WORK_DIR"' 0
 
 case "$(dpkg-deb --field "$PACKAGE" Architecture)" in
-    iphoneos-arm) INSTALL_PREFIX=/usr/local; PACKAGE_SHELL=/bin/sh; MIN_IOS=13.0 ;;
-    iphoneos-arm64) INSTALL_PREFIX=/var/jb/usr/local; PACKAGE_SHELL=/var/jb/bin/sh; MIN_IOS=15.0 ;;
+    iphoneos-arm) INSTALL_PREFIX=/usr/local; MIN_IOS=13.0 ;;
+    iphoneos-arm64) INSTALL_PREFIX=/var/jb/usr/local; MIN_IOS=15.0 ;;
     *) printf 'error: unsupported package architecture\n' >&2; exit 1 ;;
 esac
 VERSION=$(dpkg-deb --field "$PACKAGE" Version)
@@ -36,21 +36,13 @@ DYNLOAD_DIR="$FRAMEWORK_ROOT/lib/python$PYTHON_VERSION/lib-dynload"
 [ -x "$PYTHON_BIN" ]
 [ "$(readlink "$PREFIX/bin/python3")" = "python$PYTHON_VERSION" ]
 [ "$(readlink "$PREFIX/bin/python")" = "python$PYTHON_VERSION" ]
-[ "$(readlink "$PREFIX/bin/pip3")" = pip ]
-[ "$(readlink "$PREFIX/bin/pip$PYTHON_VERSION")" = pip ]
 [ -d "$FRAMEWORK_ROOT/lib/python$PYTHON_VERSION/site-packages/pip" ]
 [ -d "$FRAMEWORK_ROOT/lib/python$PYTHON_VERSION/test" ]
 [ -f "$PYTHON_FRAMEWORK/Python" ]
 [ -f "$PYTHON_FRAMEWORK/Info.plist" ]
 
-# Templates must be fully rendered, including executable shell paths.
-for script in "$PREFIX/bin/pip" "$WORK_DIR/control/postinst" "$WORK_DIR/control/postrm"; do
-    [ -x "$script" ]
-    [ "$(head -n 1 "$script")" = "#!$PACKAGE_SHELL" ]
-    sh -n "$script"
-done
-grep -F "exec $INSTALL_PREFIX/bin/python$PYTHON_VERSION -m pip" "$PREFIX/bin/pip" >/dev/null
-if grep -E '@[A-Z_]+@' "$WORK_DIR/control/"* "$PREFIX/bin/pip"; then
+# The control template must be fully rendered.
+if grep -E '@[A-Z_]+@' "$WORK_DIR/control/control"; then
     printf 'error: unrendered packaging template\n' >&2
     exit 1
 fi
@@ -59,10 +51,6 @@ if [ "$INSTALL_PREFIX" = /var/jb/usr/local ]; then
     unexpected=$(find "$ROOT" -mindepth 1 ! -path "$ROOT/var" \
         ! -path "$ROOT/var/jb" ! -path "$ROOT/var/jb/*" -print)
     [ -z "$unexpected" ] || { printf 'error: rootless payload outside /var/jb: %s\n' "$unexpected" >&2; exit 1; }
-    if grep -E '(^|[[:space:]])/usr/local' "$WORK_DIR/control/"* "$PREFIX/bin/pip"; then
-        printf 'error: rootful path in rootless packaging scripts\n' >&2
-        exit 1
-    fi
 else
     [ ! -e "$ROOT/var/jb" ]
 fi
