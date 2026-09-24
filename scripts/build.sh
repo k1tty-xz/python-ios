@@ -133,13 +133,7 @@ build_package() (
 
     # Add Debian metadata directly to the staged installation.
     mkdir -p "$PACKAGE_ROOT/DEBIAN"
-    sed \
-        -e "s|@PYTHON_VERSION@|$PYTHON_VERSION|g" \
-        -e "s|@PACKAGE_VERSION@|$PACKAGE_VERSION|g" \
-        -e "s|@ARCHITECTURE@|$ARCHITECTURE|g" \
-        -e "s|@SCHEME@|$SCHEME|g" \
-        -e "s|@MIN_IOS@|$MIN_IOS|g" \
-        "$ROOT_DIR/packaging/control.in" > "$PACKAGE_ROOT/DEBIAN/control"
+    cp "$ROOT_DIR/packaging/control" "$PACKAGE_ROOT/DEBIAN/control"
 
     PACKAGE_PATH="$OUTPUT_DIR/python-ios-framework_${PACKAGE_VERSION}_${ARCHITECTURE}.deb"
     rm -f "$PACKAGE_PATH"
