@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
+<meta name="color-scheme" content="light">
 <title>Python for iOS</title>
 <meta name="description" content="CPython as a framework for jailbroken iOS, packaged as .deb for rootful and rootless setups.">
 <link rel="icon" href="data:,">
@@ -11,141 +11,178 @@
 *, *::before, *::after { box-sizing: border-box; }
 
 :root {
-  color-scheme: light dark;
-  font: 1rem/1.5rem ui-monospace, "SF Mono", Menlo, Consolas, "DejaVu Sans Mono", "Liberation Mono", monospace;
-  font-variant-ligatures: none;
+  color-scheme: light;
+  --rule: #d7d7d7;
+  --soft: #f7f7f7;
+  --link: #bb0000;
+  --mono: "Bitstream Vera Sans Mono", "DejaVu Sans Mono", ui-monospace, Menlo, Consolas, monospace;
+  --head: Arial, Verdana, "Bitstream Vera Sans", Helvetica, sans-serif;
+  font: 0.875rem/1.25rem Verdana, Arial, "Bitstream Vera Sans", Helvetica, sans-serif;
   -webkit-text-size-adjust: 100%;
 }
 
-body {
-  max-width: 84ch;
-  margin: 0 auto;
-  padding: 0 2ch 3lh;
-  background: Canvas;
-  color: CanvasText;
-}
+body { margin: 0; background: #fff; color: #000; }
+.wrap { max-width: 60rem; margin-inline: auto; padding-inline: 1rem; }
 
-::selection { background: CanvasText; color: Canvas; }
+/* Links: dark red with a dotted underline, gray wash on hover */
+a { color: var(--link); text-decoration: none; border-bottom: 1px dotted #bbb; }
+a:hover { background: #eee; color: #555; }
+a:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 
-a:is(:hover, :focus-visible) { background: LinkText; color: Canvas; outline: 0; }
+code { padding: 0 0.25rem; background: var(--soft); border: 1px solid #e4e4e4; font: 0.9em var(--mono); overflow-wrap: anywhere; }
 
-code { font: inherit; font-weight: 700; overflow-wrap: anywhere; }
+/* Top of page */
+.meta { margin: 0; padding-block: 0.5rem; font-size: 0.75rem; text-align: right; }
+.project { margin: 1rem 0; font: 700 1.75rem/2rem var(--head); }
+.project a { color: #000; border: 0; }
+.project a:hover { background: none; color: #000; }
 
-/* Header: bold name left, link right, double rule below */
-header {
+.mainnav {
   display: flex;
-  justify-content: space-between;
-  padding-block: 1lh calc(1lh - 3px);
-  border-block-end: 3px double;
+  flex-wrap: wrap;
+  margin: 0 0 2rem;
+  padding: 0;
+  list-style: none;
+  background: var(--soft);
+  border: 1px solid #e4e4e4;
 }
-.name { font-weight: 700; }
-
-/* Plain-text headings: the underline is made of characters */
-h1, h2 { width: fit-content; margin: 0 0 1lh; line-height: 1.5rem; }
-h1 { margin-block-start: 2lh; font-size: min(1.5rem, 5.6vw); }
-h2 { font-size: 1rem; }
-h1::after, h2::after {
+.mainnav a {
   display: block;
-  inline-size: 0;
-  min-inline-size: 100%;
-  overflow: hidden;
-  white-space: nowrap;
-  font-weight: 400;
+  padding: 0.25rem 1rem;
+  border: 0;
+  border-right: 1px solid var(--rule);
+  color: #000;
+  font-size: 0.8125rem;
 }
-h1::after { content: "===================================================================================="; }
-h2::after { content: "------------------------------------------------------------------------------------"; }
+.mainnav a:hover { background: #000; color: #fff; }
 
-section { margin-block-start: 2lh; }
-p, ol { margin: 0 0 1lh; max-width: 72ch; }
+/* Wiki page */
+h1, h2 { margin: 0; font-family: var(--head); }
+h1 { margin-block-end: 0.75rem; font-size: 1.5rem; line-height: 2rem; }
+h2 {
+  margin-block: 2.5rem 0.75rem;
+  padding-block-end: 0.25rem;
+  border-bottom: 1px solid var(--rule);
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+}
+.anchor { margin-inline-start: 0.5rem; border: 0; color: #999; font-weight: 400; opacity: 0; }
+h2:hover .anchor, .anchor:focus-visible { opacity: 1; }
 
-.actions { display: flex; flex-wrap: wrap; gap: 0 3ch; }
+p, ol { max-width: 44rem; margin: 0 0 1rem; }
+ol { padding-inline-start: 2rem; }
+li { margin-block-end: 0.25rem; }
+
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1.5rem; }
 .btn {
+  display: inline-block;
+  padding: 0.25rem 0.875rem;
+  border: 2px outset #ccc;
+  background: #eee;
+  color: #222;
   font-weight: 700;
-  text-decoration: none;
-  &::before { content: "[ "; }
-  &::after { content: " ]"; }
 }
+.btn:hover { background: #e2e2e2; color: #000; }
+.btn:active { border-style: inset; }
 
-/* Packages: a box with a title, fields like a Debian control file */
-fieldset {
-  min-inline-size: 0;
-  margin: 0 0 1lh;
-  padding: 0.5lh 2ch 1lh;
-  border: 1px solid;
-}
-legend { padding: 0 1ch; font-weight: 700; }
-dl { display: grid; grid-template-columns: 13ch 1fr; margin: 0; }
-dt { color: GrayText; &::after { content: ":"; } }
-dd { margin: 0; overflow-wrap: anywhere; }
+/* Wiki table */
+table { width: 100%; margin: 0 0 1rem; border: 2px solid #ccc; border-collapse: collapse; }
+th, td { padding: 0.25rem 0.5rem; border: 1px solid #ddd; text-align: left; vertical-align: top; }
+thead th, tbody th { background: var(--soft); }
+tbody th { width: 8rem; }
+td::before { display: none; }
+td { overflow-wrap: anywhere; }
 
-ol { padding-inline-start: 3ch; }
-li { margin-block-end: 0.5lh; }
-li:last-child { margin-block-end: 0; }
+footer { margin-top: 3rem; padding-block: 1rem; border-top: 1px solid var(--rule); color: #767676; font-size: 0.75rem; text-align: center; }
+footer a { color: inherit; }
 
 @media (max-width: 40rem) {
-  dl { grid-template-columns: 1fr; }
-  dd { margin-block-end: 0.5lh; }
-  dd:last-child { margin-block-end: 0; }
+  thead { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); }
+  table, tbody, tr, th, td { display: block; }
+  tr { margin-block-end: 0.75rem; border: 1px solid #ddd; }
+  th, td { border: 0; }
+  tbody th { width: auto; border-bottom: 1px solid #ddd; }
+  td::before { content: attr(data-v); display: block; color: #666; font-size: 0.75rem; }
+  td + td { border-top: 1px solid #eee; }
 }
 </style>
 </head>
 <body>
+<div class="wrap">
 
-<header>
-  <a class="name" href="#">Python for iOS</a>
-  <a href="https://github.com/k1tty-xz/python-ios/">Source</a>
-</header>
+  <p class="meta"><a href="https://github.com/k1tty-xz/python-ios">Source</a></p>
+  <p class="project"><a href="#">Python for iOS</a></p>
 
-<main>
+  <nav>
+    <ul class="mainnav">
+      <li><a href="#packages">Choose your package</a></li>
+      <li><a href="#install">Install</a></li>
+      <li><a href="#inside">What is inside</a></li>
+    </ul>
+  </nav>
 
-  <h1>Python for jailbroken iOS</h1>
-  <p>CPython as a framework, with the standard library and pip. One package for rootful setups, one for rootless.</p>
-  <p class="actions">
-    <a class="btn" href="https://github.com/k1tty-xz/python-ios/releases/latest">Download latest release</a>
-    <a href="https://github.com/k1tty-xz/python-ios/">View source</a>
-  </p>
+  <main>
 
-  <section id="packages">
-    <h2>Choose your package</h2>
-    <p>Not sure which one you have? If the folder <code>/var/jb</code> exists on your device, use rootless.</p>
+    <h1>Python for jailbroken iOS</h1>
+    <p>CPython as a framework, with the standard library and pip. One package for rootful setups, one for rootless.</p>
+    <p class="actions">
+      <a class="btn" href="https://github.com/k1tty-xz/python-ios/releases/latest">Download latest release</a>
+      <a href="https://github.com/k1tty-xz/python-ios">View source</a>
+    </p>
 
-    <fieldset>
-      <legend>Rootful</legend>
-      <dl>
-        <dt>Installs to</dt><dd><code>/usr/local</code></dd>
-        <dt>Requires</dt><dd>iOS 13.0 or later</dd>
-        <dt>Interpreter</dt><dd><code>/usr/local/bin/python3</code></dd>
-        <dt>File</dt><dd><code>python-ios-framework_*_iphoneos-arm.deb</code></dd>
-      </dl>
-    </fieldset>
+    <section id="packages">
+      <h2>Choose your package<a class="anchor" href="#packages" aria-label="Link to this section">¶</a></h2>
+      <p>Not sure which one you have? If the folder <code>/var/jb</code> exists on your device, use rootless.</p>
+      <table>
+        <thead>
+          <tr><td></td><th scope="col">Rootful</th><th scope="col">Rootless</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row">Installs to</th>
+            <td data-v="Rootful"><code>/usr/local</code></td>
+            <td data-v="Rootless"><code>/var/jb/usr/local</code></td>
+          </tr>
+          <tr>
+            <th scope="row">Requires</th>
+            <td data-v="Rootful">iOS 13.0 or later</td>
+            <td data-v="Rootless">iOS 15.0 or later</td>
+          </tr>
+          <tr>
+            <th scope="row">Interpreter</th>
+            <td data-v="Rootful"><code>/usr/local/bin/python3</code></td>
+            <td data-v="Rootless"><code>/var/jb/usr/local/bin/python3</code></td>
+          </tr>
+          <tr>
+            <th scope="row">File</th>
+            <td data-v="Rootful"><code>python-ios-framework_*_iphoneos-arm.deb</code></td>
+            <td data-v="Rootless"><code>python-ios-framework_*_iphoneos-arm64.deb</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
 
-    <fieldset>
-      <legend>Rootless</legend>
-      <dl>
-        <dt>Installs to</dt><dd><code>/var/jb/usr/local</code></dd>
-        <dt>Requires</dt><dd>iOS 15.0 or later</dd>
-        <dt>Interpreter</dt><dd><code>/var/jb/usr/local/bin/python3</code></dd>
-        <dt>File</dt><dd><code>python-ios-framework_*_iphoneos-arm64.deb</code></dd>
-      </dl>
-    </fieldset>
-  </section>
+    <section id="install">
+      <h2>Install<a class="anchor" href="#install" aria-label="Link to this section">¶</a></h2>
+      <ol>
+        <li>Download the package that matches your setup from the <a href="https://github.com/k1tty-xz/python-ios/releases">releases page</a>.</li>
+        <li>Open the file in your package manager, or run <code>dpkg -i</code> followed by the file name.</li>
+        <li>Check the install by running your interpreter with <code>--version</code>.</li>
+      </ol>
+    </section>
 
-  <section id="install">
-    <h2>Install</h2>
-    <ol>
-      <li>Download the package that matches your setup from the <a href="https://github.com/k1tty-xz/python-ios/releases">releases page</a>.</li>
-      <li>Open the file in your package manager, or run <code>dpkg -i</code> followed by the file name.</li>
-      <li>Check the install by running your interpreter with <code>--version</code>.</li>
-    </ol>
-  </section>
+    <section id="inside">
+      <h2>What is inside<a class="anchor" href="#inside" aria-label="Link to this section">¶</a></h2>
+      <p>Python.framework, the standard library without test modules, and pip. pip has no standalone command, so run it as <code>python3 -m pip</code>.</p>
+      <p>Every build starts from the official CPython source, verified against a pinned SHA-256. The interpreter, the framework and each extension module are signed ad hoc. GitHub Actions builds both packages on every push.</p>
+    </section>
 
-  <section id="inside">
-    <h2>What is inside</h2>
-    <p>Python.framework, the standard library without test modules, and pip. pip has no standalone command, so run it as <code>python3 -m pip</code>.</p>
-    <p>Every build starts from the official CPython source, verified against a pinned SHA-256. The interpreter, the framework and each extension module are signed ad hoc. GitHub Actions builds both packages on every push.</p>
-  </section>
+  </main>
 
-</main>
+  <footer>
+    <a href="#">Python for iOS</a>
+  </footer>
 
+</div>
 </body>
 </html>
